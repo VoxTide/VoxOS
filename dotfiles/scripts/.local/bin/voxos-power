@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# VoxOS - menu zasilania (rofi). Esc zamyka menu bez wyboru.
+# VoxOS - menu zasilania (rofi, bez pola szukania). Strzałki/Enter albo mysz, Esc zamyka bez wyboru.
 choice=$(printf '%s\n' \
     "󰌾  Zablokuj" \
     "󰍃  Wyloguj" \
     "󰒲  Uśpij" \
     "󰜉  Uruchom ponownie" \
     "󰐥  Wyłącz" | rofi -dmenu -i -no-custom -p "󰐥" \
-        -theme-str 'window { width: 320px; } listview { lines: 5; }')
+        -theme-str 'window { width: 320px; } mainbox { children: [ listview ]; } listview { lines: 5; }')
 
 case "$choice" in
     *Zablokuj)         loginctl lock-session ;;

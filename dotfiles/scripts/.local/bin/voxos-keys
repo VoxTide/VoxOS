@@ -18,6 +18,8 @@ Super + Tab             poprzedni pulpit
 Super + mysz lewy/prawy przesuń / zmień rozmiar okna
 Super + V               historia schowka
 Super + S               panel szybkich ustawień (też klik w ikony po prawej na pasku)
+Super + M               zminimalizuj okno (też klik w tytuł okna na pasku)
+Super + Shift + M       przywróć zminimalizowane okno
 Print                   zrzut zaznaczenia
 Shift + Print           zrzut całego ekranu
 Super + N               schowaj powiadomienia

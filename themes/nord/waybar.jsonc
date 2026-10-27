@@ -9,7 +9,8 @@
     "modules-left": [
         "custom/arch",
         "hyprland/workspaces",
-        "group/active"
+        "group/active",
+        "custom/minimized"
     ],
     "modules-center": [
         "clock",
@@ -46,12 +47,23 @@
         "rewrite": {
             "(.*) — Mozilla Firefox": "$1",
             "(.*) - Visual Studio Code": "$1"
-        }
+        },
+        "on-click": "bash ~/.local/bin/voxos-minimize",
+        "tooltip-format": "{title}\nKliknij, aby zminimalizować (Super + M)"
     },
     "custom/close": {
         "format": "󰅖",
         "tooltip-format": "Zamknij okno (Super + Q)",
         "on-click": "hyprctl dispatch 'hl.dsp.window.close()'"
+    },
+    "custom/minimized": {
+        "exec": "bash ~/.local/bin/voxos-minimize count",
+        "return-type": "json",
+        "interval": 10,
+        "signal": 9,
+        "format": "󰖰 {}",
+        "hide-empty-text": true,
+        "on-click": "bash ~/.local/bin/voxos-minimize restore"
     },
     "clock": {
         "format": "󰅐  {:%H:%M}",

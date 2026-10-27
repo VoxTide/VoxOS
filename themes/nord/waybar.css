@@ -108,3 +108,15 @@ window#waybar.empty #active { opacity: 0; }
     color: @nord15;
 }
 #mpris.paused { color: @nord3; }
+
+/* Licznik zminimalizowanych okien (widoczny tylko, gdy jakieś są) */
+#custom-minimized {
+    background: alpha(@nord0, 0.92);
+    border: 1px solid @nord1;
+    border-radius: 10px;
+    padding: 0 12px;
+    margin: 2px 0;
+    color: @nord9;
+}
+#custom-minimized:hover { color: @nord8; }
+#window:hover { color: @nord6; }

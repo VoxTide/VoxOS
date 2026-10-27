@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# VoxOS - minimalizowanie okien. Hyprland nie ma tego wbudowanego, więc okno trafia
+# na ukryty pulpit special:minimized, a przywrócenie przenosi je na bieżący pulpit.
+#   voxos-minimize            zminimalizuj aktywne okno (klik w tytuł na pasku, Super + M)
+#   voxos-minimize restore    przywróć: jedno okno od razu, kilka - menu (klik w licznik, Super + Shift + M)
+#   voxos-minimize count      licznik dla paska (JSON dla Waybara, pusto = ukryty)
+set -u
+WS="special:minimized"
+
+refresh_bar() { pkill -RTMIN+9 waybar 2>/dev/null || true; }
+dsp() { hyprctl dispatch "$1" >/dev/null 2>&1; }
+minimized() {
+    hyprctl clients -j 2>/dev/null | jq -r --arg ws "$WS" \
+        '.[] | select(.workspace.name == $ws) | [.address, .class, (.title | gsub("\t"; " "))] | @tsv'
+}
+
+case "${1:-minimize}" in
+    minimize)
+        addr=$(hyprctl activewindow -j 2>/dev/null | jq -r '.address // empty')
+        [[ -n $addr ]] || exit 0
+        dsp "hl.dsp.window.move({ workspace = \"$WS\", follow = false, window = \"address:$addr\" })"
+        refresh_bar
+        ;;
+    restore)
+        mapfile -t rows < <(minimized)
+        if (( ${#rows[@]} == 0 )); then
+            notify-send -a VoxOS -t 2000 "Brak zminimalizowanych okien" 2>/dev/null
+            exit 0
+        fi
+        idx=0
+        if (( ${#rows[@]} > 1 )); then
+            idx=$(for r in "${rows[@]}"; do
+                      IFS=$'\t' read -r _ cls title <<<"$r"
+                      printf '%s  ·  %s\n' "${title:-$cls}" "$cls"
+                  done | rofi -dmenu -i -no-custom -format i -p "󰖯" \
+                      -theme-str 'window { width: 480px; } listview { lines: 6; }') || exit 0
+            [[ $idx =~ ^[0-9]+$ ]] || exit 0
+        fi
+        IFS=$'\t' read -r addr _ _ <<<"${rows[idx]}"
+        ws=$(hyprctl activeworkspace -j 2>/dev/null | jq -r '.id')
+        [[ $ws =~ ^-?[0-9]+$ ]] || ws=1
+        dsp "hl.dsp.window.move({ workspace = $ws, window = \"address:$addr\" })"
+        dsp "hl.dsp.focus({ window = \"address:$addr\" })"
+        refresh_bar
+        ;;
+    count)
+        n=$(minimized | grep -c . || true)
+        if (( n > 0 )); then
+            printf '{"text": "%s", "tooltip": "Zminimalizowane okna: %s\\nKliknij, aby przywrócić (Super + Shift + M)"}\n' "$n" "$n"
+        fi
+        ;;
+esac

@@ -92,6 +92,8 @@ hl.bind(mainMod .. " + T",      hl.dsp.exec_cmd("bash ~/.local/bin/voxos-theme")
 hl.bind(mainMod .. " + V",      hl.dsp.exec_cmd("cliphist list | rofi -dmenu | cliphist decode | wl-copy"))
 
 hl.bind(mainMod .. " + S",      hl.dsp.exec_cmd("python3 ~/.local/bin/voxos-panel"))     -- panel szybkich ustawień
+hl.bind(mainMod .. " + M",      hl.dsp.exec_cmd("bash ~/.local/bin/voxos-minimize"))           -- minimalizuj okno
+hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-minimize restore")) -- przywróć zminimalizowane
 hl.bind(mainMod .. " + slash",  hl.dsp.exec_cmd("bash ~/.local/bin/voxos-keys"))   -- ściągawka skrótów
 hl.bind(mainMod .. " + N",      hl.dsp.exec_cmd("makoctl dismiss --all"))           -- schowaj powiadomienia
 hl.bind(mainMod .. " + Tab",    hl.dsp.focus({ workspace = "previous" }))           -- poprzedni pulpit

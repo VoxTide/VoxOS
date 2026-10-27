@@ -77,6 +77,8 @@ boot/splash.bmp     logo VoxOS przy starcie
 | `Super + L` | blokada ekranu |
 | `Super + V` | historia schowka |
 | `Super + S` | panel szybkich ustawień |
+| `Super + M` albo klik w tytuł okna na pasku | zminimalizuj okno |
+| `Super + Shift + M` albo klik w licznik 󰖰 na pasku | przywróć zminimalizowane okno |
 | `Super + strzałki` | fokus na sąsiednie okno |
 | `Super + Shift + strzałki` | przesuń okno |
 | `Super + Ctrl + strzałki` | zmień rozmiar okna |

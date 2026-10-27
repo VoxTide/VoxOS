@@ -25,6 +25,7 @@ gtk-layer-shell               # panel jako warstwa nad pulpitem (Wayland)
 kitty                         # terminal
 mako                          # powiadomienia
 libnotify                     # notify-send (powiadomienia ze skryptów)
+jq                            # odczyt JSON z hyprctl w skryptach (np. voxos-minimize)
 swaybg                        # tło (na start jednolity kolor)
 sddm                          # ekran logowania
 greetd                        # szybkie logowanie prosto do Hyprlanda (AUTOLOGIN=true)
