@@ -54,6 +54,8 @@ link rofi.rasi     "$HOME/.config/rofi/config.rasi"
 link mako.conf     "$HOME/.config/mako/config"
 link kitty.conf    "$HOME/.config/kitty/theme.conf"
 link starship.toml "$HOME/.config/starship.toml"
+link gtk3.css      "$HOME/.config/gtk-3.0/gtk.css"
+link gtk4.css      "$HOME/.config/gtk-4.0/gtk.css"
 
 echo "Motyw: $name"
 

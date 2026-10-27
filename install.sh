@@ -61,6 +61,7 @@ MASK_SERVICES=()
 ENABLE_MULTILIB=false
 SNAPPER=false
 THEME=nord
+AUTOLOGIN=false
 # shellcheck source=/dev/null
 source "$HOST_DIR/host.conf"
 
@@ -166,11 +167,13 @@ info "Ustawiam motyw: $theme (zmiana później: voxos-theme albo Super + T)"
 bash "$DOTFILES/scripts/.local/bin/voxos-theme" "$theme"
 
 # Ciemny motyw aplikacji GTK/libadwaita (Firefox, Thunar, okna dialogowe)
+gtk_theme=Adwaita-dark
+[[ -d /usr/share/themes/adw-gtk3-dark ]] && gtk_theme=adw-gtk3-dark   # kolory z motywu VoxOS także w GTK3
 if command -v gsettings >/dev/null 2>&1; then
     info "Ustawiam ciemny motyw aplikacji, ikony Papirus i kursor Bibata"
     {
         gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' &&
-        gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark' &&
+        gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" &&
         gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark' &&
         gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice' &&
         gsettings set org.gnome.desktop.interface cursor-size 24
@@ -211,6 +214,25 @@ if (( ${#SERVICES[@]} > 0 )); then
 fi
 if (( ${#MASK_SERVICES[@]} > 0 )); then
     sudo systemctl mask "${MASK_SERVICES[@]}"
+fi
+
+# --- Logowanie: autologin + ekran blokady z motywu jako ekran logowania ----------
+AUTOLOGIN_CONF=/etc/sddm.conf.d/voxos-autologin.conf
+if [[ $AUTOLOGIN == true ]]; then
+    session=hyprland
+    [[ -f /usr/share/wayland-sessions/hyprland.desktop ]] || \
+        session="$(basename "$(ls /usr/share/wayland-sessions/hyprland*.desktop 2>/dev/null | head -1)" .desktop)"
+    if [[ -n $session ]]; then
+        info "Logowanie: autologin do Hyprlanda, hasło na ekranie blokady motywu"
+        sudo mkdir -p /etc/sddm.conf.d
+        printf '[Autologin]\nUser=%s\nSession=%s\nRelogin=true\n' "$USER" "$session" \
+            | sudo tee "$AUTOLOGIN_CONF" >/dev/null
+    else
+        warn "Nie znalazłem sesji Hyprlanda w /usr/share/wayland-sessions - pomijam autologin"
+    fi
+elif [[ -f $AUTOLOGIN_CONF ]]; then
+    info "Wyłączam autologin (AUTOLOGIN=false)"
+    sudo rm -f "$AUTOLOGIN_CONF"
 fi
 
 # --- Firewall ------------------------------------------------------------------

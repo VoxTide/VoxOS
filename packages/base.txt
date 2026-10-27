@@ -49,6 +49,7 @@ firefox
 
 # Wygląd (motyw Nord): ciemny GTK i ikony
 gnome-themes-extra            # Adwaita-dark dla aplikacji GTK3
+adw-gtk-theme                 # adw-gtk3: GTK3 w stylu libadwaita, kolory z motywu VoxOS
 papirus-icon-theme            # ikony Papirus-Dark
 
 # Czcionki

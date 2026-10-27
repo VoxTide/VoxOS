@@ -9,7 +9,7 @@ Mój Arch Linux z Hyprlandem, skrojony pod mnie. Jeden skrypt stawia cały syste
 | `nord` | [Nord](https://www.nordtheme.com): chłodne szaroniebieskie barwy, zorza nad górami |
 | `dot` | monochromatyczny: czerń, biel i szarości z jednym czerwonym akcentem, zegar z kropek (font VoxDot), tapeta z półtonowej kuli |
 
-Każdy motyw obejmuje: kolory okien Hyprlanda, pasek Waybar, rofi, powiadomienia mako, kolory terminala kitty, ekran blokady i tapetę. Wspólne dla obu: ciemne aplikacje GTK (Adwaita-dark), ikony Papirus-Dark, kursor Bibata-Modern-Ice.
+Każdy motyw obejmuje: kolory okien Hyprlanda, pasek Waybar, rofi, powiadomienia mako, kolory terminala kitty i promptu starship, kolory aplikacji GTK3/GTK4 (okienka głośności, sieci, Bluetooth, Thunar, Loupe, Papers), ekran blokady i tapetę. Wspólne dla obu: baza adw-gtk3-dark, ikony Papirus-Dark, kursor Bibata-Modern-Ice.
 
 ```bash
 voxos-theme          # menu wyboru (też Super + T)
@@ -89,6 +89,7 @@ themes/<motyw>/     wygląd: hypr.lua, waybar, rofi, mako, kitty, hyprlock, tape
 
 ## Wygoda na co dzień
 
+- **Logowanie**: przy `AUTOLOGIN=true` w `host.conf` laptop startuje prosto do Hyprlanda i od razu pokazuje ekran blokady motywu (ten sam co `Super + L`), więc hasło jest wymagane, a ekran logowania wygląda jak reszta systemu. `AUTOLOGIN=false` + `bash install.sh` przywraca zwykły ekran SDDM.
 - **OSD**: przy zmianie głośności i jasności pojawia się okienko z paskiem (`voxos-osd`).
 - **Bateria**: ostrzeżenie przy 20% i alarm przy 10% (`voxos-battery`, timer systemd co 2 minuty).
 - **Aktualizacje**: licznik na pasku, gdy są nowe pakiety. Kliknięcie otwiera terminal z aktualizacją.
