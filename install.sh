@@ -90,6 +90,29 @@ fi
 info "Odświeżam bazy pakietów"
 sudo pacman -Sy
 
+# --- Wersje -git tam, gdzie wydanie z repozytoriów czegoś jeszcze nie umie ------
+# "pakiet wersja": dopóki repozytorium ma wersję <= podanej, instalujemy pakiet-git z AUR.
+# Gdy w repozytorium pojawi się nowsza wersja, install.sh sam wraca do zwykłego pakietu.
+GIT_FALLBACK=(
+    "waybar 0.15.0"   # klik w pulpit na pasku przy configu Hyprlanda w Lua (poprawka jest w gicie)
+    "rofi 2.0.0"      # zamykanie launchera i menu kliknięciem obok okna (Wayland, poprawka w gicie)
+)
+git_aur=()
+for entry in "${GIT_FALLBACK[@]}"; do
+    read -r name max <<<"$entry"
+    repo_ver=$(pacman -Si -- "$name" 2>/dev/null | awk '/^Version/ { print $3; exit }')
+    [[ -n $repo_ver ]] || continue
+    if (( $(vercmp "$repo_ver" "$max") <= 0 )); then
+        for i in "${!pkgs[@]}"; do
+            [[ ${pkgs[i]} == "$name" ]] && unset 'pkgs[i]'
+        done
+        git_aur+=("$name-git")
+    elif pacman -Q "$name-git" >/dev/null 2>&1; then
+        info "$name $repo_ver jest już w repozytoriach - wracam z $name-git na zwykły pakiet (potwierdź usunięcie $name-git)"
+    fi
+done
+pkgs=("${pkgs[@]}")
+
 # Nazwy, których nie ma w repozytoriach, pomijamy z ostrzeżeniem zamiast przerywać całą instalację
 known=()
 missing=()
@@ -114,6 +137,7 @@ for group in "${AUR_GROUPS[@]}"; do
     [[ -f $list ]] || die "Brak listy pakietów: packages/$group.txt"
     mapfile -t -O "${#aur_pkgs[@]}" aur_pkgs < <(read_list "$list")
 done
+aur_pkgs+=("${git_aur[@]}")
 
 if (( ${#aur_pkgs[@]} > 0 )); then
     # Budujemy yay ze źródeł, żeby zawsze pasował do aktualnej wersji pacmana
@@ -124,6 +148,11 @@ if (( ${#aur_pkgs[@]} > 0 )); then
         (cd "$tmp/yay" && makepkg -si --noconfirm)
         rm -rf "$tmp"
     fi
+    for p in "${git_aur[@]}"; do
+        if ! pacman -Q "$p" >/dev/null 2>&1 && pacman -Q "${p%-git}" >/dev/null 2>&1; then
+            warn "$p zastąpi ${p%-git}: na pytanie o usunięcie ${p%-git} odpowiedz y (kompilacja potrwa kilka-kilkanaście minut)"
+        fi
+    done
     info "Instaluję ${#aur_pkgs[@]} pakietów z AUR"
     yay -S --needed "${aur_pkgs[@]}" || warn "Część pakietów z AUR się nie zainstalowała - reszta instalacji idzie dalej"
 fi

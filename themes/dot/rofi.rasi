@@ -2,6 +2,7 @@
 configuration {
     modi: "drun,run";
     show-icons: true;
+    click-to-exit: true;   /* klik obok okna zamyka menu (rofi z gita, patrz install.sh) */
     icon-theme: "Papirus-Dark";
     display-drun: "APLIKACJE";
     display-run: "KOMENDA";

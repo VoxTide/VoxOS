@@ -79,7 +79,7 @@ boot/splash.bmp     logo VoxOS przy starcie
 | `Super + strzałki` | fokus na sąsiednie okno |
 | `Super + Shift + strzałki` | przesuń okno |
 | `Super + Ctrl + strzałki` | zmień rozmiar okna |
-| `Super + 1-9` | przełącz pulpit |
+| `Super + 1-9` albo klik w kropkę na pasku | przełącz pulpit |
 | `Super + Shift + 1-9` | przenieś okno na pulpit |
 | `Super + Tab` | poprzedni pulpit |
 | 3 palce w bok (touchpad) | zmiana pulpitu |
@@ -99,6 +99,8 @@ boot/splash.bmp     logo VoxOS przy starcie
 
 - **Logowanie**: przy `AUTOLOGIN=true` w `host.conf` **greetd** uruchamia Hyprlanda od razu po starcie (bez serwera X, kilka sekund szybciej niż SDDM), a ekran blokady motywu (ten sam co `Super + L`) pełni rolę ekranu logowania, więc hasło jest wymagane (`voxos-session-lock`, log w `$XDG_RUNTIME_DIR/voxos-session-lock.log`). Wylogowanie wraca do tego samego ekranu blokady. `AUTOLOGIN=false` + `bash install.sh` przywraca klasyczny ekran SDDM. Awaryjnie: `Ctrl + Alt + F2`, zaloguj się i `sudo systemctl disable greetd && sudo systemctl enable sddm && sudo reboot`.
 - **Cichy start**: przy `QUIET_BOOT=true` nie widać menu startowego ani przewijających się komunikatów, a zamiast logo Archa pojawia się logo VoxOS (`boot/splash.bmp`). Działa ze zwykłymi wpisami systemd-boot i z UKI (`/etc/kernel/cmdline` + preset mkinitcpio). Menu systemd-boot pokażesz, **przytrzymując Spację** zaraz po logo HP.
+- **Pasek, prawa strona**: jedna pigułka sterowania z jasnością, głośnością i ikonami Wi-Fi, Bluetooth i KDE Connect. Najechanie na jasność lub głośność wysuwa suwak, kółko zmienia wartość (z OSD), klik w głośność otwiera mikser, prawy klik wycisza. Licznik aktualizacji pojawia się tylko, gdy są nowe pakiety.
+- **Launcher i menu** (aplikacje, zasilanie, motywy, schowek) zamykają się kliknięciem obok okna albo `Esc`.
 - **OSD**: przy zmianie głośności i jasności pojawia się okienko z paskiem (`voxos-osd`).
 - **Bateria**: ostrzeżenie przy 20% i alarm przy 10% (`voxos-battery`, timer systemd co 2 minuty).
 - **Aktualizacje**: licznik na pasku, gdy są nowe pakiety. Kliknięcie otwiera terminal z aktualizacją.
@@ -135,6 +137,10 @@ voxos-update -m "opis zmian"      # opis commita od razu
 Skrypt sprawdza, czy repo jest czyste i czy zip to na pewno VoxOS, pobiera najpierw zmiany z GitHuba, podmienia pliki (oprócz `.git`), pokazuje listę zmian, robi commit i `git push`, a potem uruchamia `install.sh --quick` (dotfiles i motyw, bez pakietów). Pełną instalację z pakietami wybierasz w pytaniu na końcu.
 
 Jednorazowo przed pierwszym użyciem: `gh auth login` oraz `git config --global user.name` / `user.email`.
+
+## Pakiety z gita zamiast repozytoriów
+
+`GIT_FALLBACK` w `install.sh`: dopóki wydanie w repozytoriach czegoś nie umie, instalowana jest wersja `-git` z AUR. Teraz: **waybar-git** (klik w pulpit na pasku przy configu Lua) i **rofi-git** (zamykanie kliknięciem obok). Gdy w repozytoriach pojawi się nowsza wersja, `bash install.sh` sam wraca do zwykłego pakietu.
 
 ## Migawki (snapper + snap-pac)
 

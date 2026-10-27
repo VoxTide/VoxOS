@@ -17,11 +17,8 @@
     ],
     "modules-right": [
         "custom/updates",
-        "backlight",
-        "pulseaudio",
-        "network",
+        "group/controls",
         "battery",
-        "tray",
         "custom/power"
     ],
     "custom/arch": {
@@ -69,6 +66,36 @@
             }
         }
     },
+    "group/controls": {
+        "orientation": "horizontal",
+        "modules": [
+            "group/light",
+            "group/audio",
+            "tray"
+        ]
+    },
+    "group/light": {
+        "orientation": "horizontal",
+        "drawer": {
+            "transition-duration": 250,
+            "transition-left-to-right": false
+        },
+        "modules": [
+            "backlight",
+            "backlight/slider"
+        ]
+    },
+    "group/audio": {
+        "orientation": "horizontal",
+        "drawer": {
+            "transition-duration": 250,
+            "transition-left-to-right": false
+        },
+        "modules": [
+            "pulseaudio",
+            "pulseaudio/slider"
+        ]
+    },
     "backlight": {
         "format": "{icon}  {percent}%",
         "format-icons": [
@@ -76,8 +103,15 @@
             "󰃟",
             "󰃠"
         ],
-        "on-scroll-up": "brightnessctl set 5%+",
-        "on-scroll-down": "brightnessctl set 5%-"
+        "on-scroll-up": "bash ~/.local/bin/voxos-osd brightness up",
+        "on-scroll-down": "bash ~/.local/bin/voxos-osd brightness down",
+        "tooltip-format": "Jasność {percent}%\nKółko lub suwak: zmiana",
+        "smooth-scrolling-threshold": 1
+    },
+    "backlight/slider": {
+        "min": 5,
+        "max": 100,
+        "orientation": "horizontal"
     },
     "pulseaudio": {
         "format": "{icon}  {volume}%",
@@ -91,21 +125,17 @@
             "headphone": "󰋋"
         },
         "on-click": "pavucontrol",
-        "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+        "on-click-right": "bash ~/.local/bin/voxos-osd volume mute",
+        "tooltip-format": "Głośność {volume}%  ({desc})\nKółko: zmiana  Klik: mikser  Prawy: wycisz",
+        "on-scroll-up": "bash ~/.local/bin/voxos-osd volume up",
+        "on-scroll-down": "bash ~/.local/bin/voxos-osd volume down",
+        "smooth-scrolling-threshold": 1
     },
-    "network": {
-        "format-wifi": "{icon}  {essid}",
-        "format-icons": [
-            "󰤟",
-            "󰤢",
-            "󰤥",
-            "󰤨"
-        ],
-        "format-ethernet": "󰈀  LAN",
-        "format-disconnected": "󰤮  offline",
-        "tooltip-format-wifi": "{essid} ({signalStrength}%)\n{ipaddr}",
-        "tooltip-format-ethernet": "{ifname}\n{ipaddr}",
-        "on-click": "nm-connection-editor"
+    "pulseaudio/slider": {
+        "min": 0,
+        "max": 100,
+        "orientation": "horizontal",
+        "zero-on-mute": false
     },
     "battery": {
         "states": {
@@ -130,7 +160,7 @@
         "tooltip-format": "{timeTo}"
     },
     "tray": {
-        "spacing": 8,
+        "spacing": 12,
         "icon-size": 16
     },
     "custom/power": {
@@ -144,7 +174,8 @@
         "interval": 1800,
         "format": "󰚰  {}",
         "on-click": "kitty --title Aktualizacja sh -c 'yay -Syu; pkill -RTMIN+8 waybar; echo; read -rp \"Enter zamyka okno \"'",
-        "signal": 8
+        "signal": 8,
+        "hide-empty-text": true
     },
     "mpris": {
         "format": "{player_icon}  {dynamic}",
