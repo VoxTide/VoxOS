@@ -1,0 +1,7 @@
+configuration {
+    modi: "drun,run";
+    show-icons: true;
+    display-drun: "Aplikacje";
+    font: "JetBrainsMono Nerd Font 11";
+}
+@theme "Arc-Dark"

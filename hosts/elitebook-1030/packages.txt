@@ -1,0 +1,9 @@
+# Sterowniki i sprzęt dla 1030 G1
+intel-ucode
+mesa
+vulkan-intel
+intel-media-driver   # sprzętowe dekodowanie wideo
+tlp                  # oszczędzanie baterii
+brightnessctl        # jasność ekranu
+bluez
+bluez-utils

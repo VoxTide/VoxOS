@@ -1,0 +1,52 @@
+# Podstawa systemu
+base-devel
+git
+stow
+openssh
+xdg-user-dirs
+man-db
+nano                          # edytor tekstu w terminalu
+ufw                           # firewall
+
+# Hyprland i pulpit
+hyprland
+xdg-desktop-portal-hyprland   # przechwytywanie ekranu (OBS, udostępnianie)
+xdg-desktop-portal-gtk        # okna wyboru plików
+hyprpolkitagent               # okienka z prośbą o hasło
+hyprlock                      # blokada ekranu
+hypridle                      # akcje przy bezczynności
+qt5-wayland
+qt6-wayland
+waybar                        # pasek
+rofi                          # launcher aplikacji
+kitty                         # terminal
+mako                          # powiadomienia
+swaybg                        # tło (na start jednolity kolor)
+sddm                          # ekran logowania
+xorg-server                   # SDDM rysuje ekran logowania przez X11
+
+# Zrzuty ekranu i schowek
+grim
+slurp
+wl-clipboard
+cliphist
+
+# Dźwięk
+pipewire
+pipewire-pulse
+pipewire-alsa
+wireplumber
+pavucontrol
+
+# Sieć
+networkmanager
+network-manager-applet
+
+# Aplikacje
+thunar
+firefox
+
+# Czcionki
+ttf-jetbrains-mono-nerd
+noto-fonts
+noto-fonts-emoji

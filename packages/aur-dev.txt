@@ -1,0 +1,2 @@
+# Pakiety z AUR (instalowane przez paru)
+visual-studio-code-bin

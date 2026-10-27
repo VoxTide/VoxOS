@@ -1,0 +1,6 @@
+# Programowanie
+python
+python-pipx       # narzędzia Pythona bez psucia systemu
+nodejs
+npm
+github-cli
