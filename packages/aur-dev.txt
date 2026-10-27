@@ -1,2 +1,2 @@
-# Pakiety z AUR (instalowane przez paru)
+# Pakiety z AUR (instalowane przez yay)
 visual-studio-code-bin

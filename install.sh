@@ -70,7 +70,7 @@ fi
 info "Instaluję ${#pkgs[@]} pakietów (pacman)"
 sudo pacman -Syu --needed "${pkgs[@]}"
 
-# --- Pakiety z AUR (przez paru) -----------------------------------------------
+# --- Pakiety z AUR (przez yay) -------------------------------------------------
 aur_pkgs=()
 for group in "${AUR_GROUPS[@]}"; do
     list="$REPO_DIR/packages/$group.txt"
@@ -79,15 +79,16 @@ for group in "${AUR_GROUPS[@]}"; do
 done
 
 if (( ${#aur_pkgs[@]} > 0 )); then
-    if ! command -v paru >/dev/null 2>&1; then
-        info "Instaluję paru (pomocnik AUR)"
+    # Budujemy yay ze źródeł, żeby zawsze pasował do aktualnej wersji pacmana
+    if ! yay --version >/dev/null 2>&1; then
+        info "Instaluję yay (pomocnik AUR, kompilacja ze źródeł)"
         tmp="$(mktemp -d)"
-        git clone --depth 1 https://aur.archlinux.org/paru-bin.git "$tmp/paru-bin"
-        (cd "$tmp/paru-bin" && makepkg -si --noconfirm)
+        git clone --depth 1 https://aur.archlinux.org/yay.git "$tmp/yay"
+        (cd "$tmp/yay" && makepkg -si --noconfirm)
         rm -rf "$tmp"
     fi
     info "Instaluję ${#aur_pkgs[@]} pakietów z AUR"
-    paru -S --needed "${aur_pkgs[@]}"
+    yay -S --needed "${aur_pkgs[@]}"
 fi
 
 # --- Dotfiles -----------------------------------------------------------------
