@@ -124,6 +124,9 @@
 #panel button.net .net-name { color: #D8DEE9; }
 #panel button.net.active .net-name { color: #ECEFF4; font-weight: bold; }
 #panel .net-icon, #panel .net-lock { color: #D8DEE9; font-size: 14px; }
+#panel .net-sub { font-size: 10px; color: #8FA0B5; }
+#panel button.net.active .net-sub { color: #D8DEE9; }
+#panel .section { font-size: 10px; color: #8FA0B5; margin: 10px 12px 2px 12px; }
 #panel .net-check { color: #A3BE8C; }
 #panel entry {
     background-color: #3B4252;

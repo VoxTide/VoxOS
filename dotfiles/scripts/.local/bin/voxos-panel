@@ -30,8 +30,15 @@ I = {
     "mic": "󰍬", "mic_off": "󰍭", "coffee": "󰅶", "plane": "󰀝",
     "phone": "󰄜", "phone_off": "󰥐", "right": "󰅂", "left": "󰅁", "refresh": "󰑐",
     "check": "󰄬", "power": "󰐥", "shot": "󰹑", "palette": "󰏘",
-    "play": "󰐊", "pause": "󰏤", "next": "󰒭", "prev": "󰒮",
+    "play": "󰐊", "pause": "󰏤", "next": "󰒭", "prev": "󰒮", "cog": "󰒓",
 }
+# Ikony urządzeń Bluetooth wg pola "Icon" z `bluetoothctl info`
+BT_ICONS = {
+    "audio-headset": "󰋋", "audio-headphones": "󰋋", "audio-card": "󰓃", "audio-speakers": "󰓃",
+    "input-mouse": "󰍽", "input-keyboard": "󰌌", "input-gaming": "󰊗", "input-tablet": "󰍽",
+    "phone": "󰄜", "computer": "󰌢", "video-display": "󰔂", "multimedia-player": "󰓃",
+}
+MAC_RE = re.compile(r"([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}")
 
 
 # --- Narzędzia -------------------------------------------------------------------
@@ -99,6 +106,35 @@ def hyprsunset(cmd):
             return s.recv(256).decode(errors="replace").strip()
     except OSError:
         return None
+
+
+def bt_devices():
+    """Urządzenia Bluetooth: połączone, sparowane i znalezione podczas szukania."""
+    def devs(*flt):
+        found = {}
+        for line in out(["bluetoothctl", "devices", *flt]).splitlines():
+            parts = line.split(" ", 2)
+            if len(parts) >= 2 and parts[0] == "Device":
+                found[parts[1]] = parts[2] if len(parts) == 3 else parts[1]
+        return found
+    every, paired, connected = devs(), devs("Paired"), devs("Connected")
+    every.update(paired)
+    result = []
+    for mac, name in every.items():
+        is_paired = mac in paired
+        if not is_paired and MAC_RE.fullmatch(name):
+            continue   # urządzenia bez nazwy tylko zaśmiecają listę
+        icon, battery = "", None
+        if is_paired:
+            info = out(["bluetoothctl", "info", mac])
+            m = re.search(r"Icon: (\S+)", info)
+            icon = m.group(1) if m else ""
+            m = re.search(r"Battery Percentage: \S+ \((\d+)\)", info)
+            battery = int(m.group(1)) if m else None
+        result.append({"mac": mac, "name": name, "paired": is_paired, "connected": mac in connected,
+                       "icon": BT_ICONS.get(icon, I["bt"]), "battery": battery})
+    result.sort(key=lambda d: (not d["connected"], not d["paired"], d["name"].lower()))
+    return result
 
 
 # --- Odczyt stanu systemu (w osobnym wątku) --------------------------------------
@@ -249,6 +285,8 @@ def main_gui():
             self.alive = True
             self.last_phone = 0.0
             self.wifi_target = None
+            self.bt_scan_proc = None
+            self.bt_busy = False
 
             self.win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
             self.win.set_name("voxos-panel-window")
@@ -303,11 +341,13 @@ def main_gui():
             self.panel.pack_start(self.stack, True, True, 0)
             self.stack.add_named(self.build_main(), "main")
             self.stack.add_named(self.build_wifi(), "wifi")
+            self.stack.add_named(self.build_bt(), "bt")
 
             self.win.connect("key-press-event", self.on_key)
             self.win.connect("destroy", lambda *_: self.quit())
             self.win.show_all()
             self.pass_row.hide()
+            self.bt_on_row.hide()
             self.media.hide()
             self.stack.set_visible_child_name("main")
 
@@ -347,7 +387,7 @@ def main_gui():
             grid.set_row_spacing(10)
             grid.set_column_spacing(10)
             self.t_wifi = Tile(I["wifi"][3], "Wi-Fi", self.act_wifi, self.show_wifi)
-            self.t_bt = Tile(I["bt"], "Bluetooth", self.act_bt, lambda: self.close_then(["blueman-manager"]))
+            self.t_bt = Tile(I["bt"], "Bluetooth", self.act_bt, self.show_bt)
             self.t_night = Tile(I["night"], "Nocne światło", self.act_night)
             self.t_dnd = Tile(I["dnd"], "Nie przeszkadzać", self.act_dnd)
             self.t_mic = Tile(I["mic"], "Mikrofon", self.act_mic)
@@ -407,6 +447,32 @@ def main_gui():
             page.pack_start(self.wifi_status, False, False, 0)
             return page
 
+        def build_bt(self):
+            page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            head.pack_start(button(I["left"], "round", self.show_main, "Wróć"), False, False, 0)
+            head.pack_start(label("Bluetooth", "page-title", xalign=0, hexpand=True), True, True, 0)
+            head.pack_start(button(I["cog"], "round", lambda: self.close_then(["blueman-manager"]),
+                                   "Menedżer Bluetooth (zapominanie urządzeń, pliki)"), False, False, 0)
+            head.pack_start(button(I["refresh"], "round", self.bt_scan, "Szukaj urządzeń"), False, False, 0)
+            page.pack_start(head, False, False, 0)
+
+            scroll = Gtk.ScrolledWindow()
+            scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+            scroll.set_propagate_natural_height(True)
+            scroll.set_max_content_height(340)
+            self.bt_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            scroll.add(self.bt_list)
+            page.pack_start(scroll, False, False, 0)
+
+            self.bt_on_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+            self.bt_on_row.pack_end(button(label("Włącz Bluetooth", "pill-text"), "pill", self.bt_enable), False, False, 0)
+            page.pack_start(self.bt_on_row, False, False, 0)
+
+            self.bt_status = label("", "status", xalign=0, ellipsize=True, hexpand=True)
+            page.pack_start(self.bt_status, False, False, 0)
+            return page
+
         def make_scale(self, lo, hi, key):
             adj = Gtk.Adjustment(value=lo, lower=lo, upper=hi, step_increment=1, page_increment=5, page_size=0)
             s = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
@@ -430,7 +496,7 @@ def main_gui():
 
         def on_key(self, widget, event):
             if event.keyval == Gdk.KEY_Escape:
-                if self.stack.get_visible_child_name() == "wifi":
+                if self.stack.get_visible_child_name() != "main":
                     self.show_main()
                 else:
                     self.quit()
@@ -632,6 +698,131 @@ def main_gui():
                     self.ask_password(ssid)   # np. złe lub zmienione hasło
             return False
 
+        # --- Bluetooth -----------------------------------------------------------------
+        def show_bt(self):
+            self.stack.set_visible_child_name("bt")
+            if self.state.get("bt_on"):
+                self.bt_on_row.hide()
+                self.bt_scan()
+            else:
+                self.bt_on_row.show_all()
+                self.bt_status.set_text("Bluetooth jest wyłączony" if self.state.get("bt_present", True) else "Brak adaptera Bluetooth")
+                self.bt_reload()
+
+        def bt_enable(self):
+            self.bt_on_row.hide()
+            self.bt_status.set_text("Włączam…")
+
+            def work():
+                run(["rfkill", "unblock", "bluetooth"])
+                run(["bluetoothctl", "power", "on"], timeout=8)
+                time.sleep(0.5)
+                self.wake.set()
+                GLib.idle_add(lambda: (self.bt_scan(), False)[1])
+            threading.Thread(target=work, daemon=True).start()
+
+        def bt_reload(self):
+            threading.Thread(target=lambda: GLib.idle_add(self.fill_bt, bt_devices()), daemon=True).start()
+
+        def bt_scan(self):
+            """Szukanie przez 30 s; lista odświeża się w trakcie."""
+            if self.bt_scan_proc is not None and self.bt_scan_proc.poll() is None:
+                return
+            self.bt_status.set_text("Szukam urządzeń… (urządzenie musi być w trybie parowania)")
+            try:
+                self.bt_scan_proc = subprocess.Popen(["bluetoothctl", "--timeout", "30", "scan", "on"],
+                                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                                     stdin=subprocess.DEVNULL)
+            except OSError:
+                self.bt_scan_proc = None
+            proc = self.bt_scan_proc
+
+            def work():
+                while self.alive:
+                    GLib.idle_add(self.fill_bt, bt_devices())
+                    if proc is None or proc.poll() is not None:
+                        break
+                    time.sleep(2.5)
+                GLib.idle_add(self.bt_scan_done)
+            threading.Thread(target=work, daemon=True).start()
+
+        def bt_scan_done(self):
+            if not self.bt_busy and self.bt_status.get_text().startswith("Szukam"):
+                self.bt_status.set_text("")
+            return False
+
+        def fill_bt(self, devices):
+            if not self.alive:
+                return False
+            for child in self.bt_list.get_children():
+                self.bt_list.remove(child)
+            others_header = False
+            for d in devices:
+                if not d["paired"] and not others_header:
+                    others_header = True
+                    self.bt_list.pack_start(label("Inne urządzenia", "section", xalign=0), False, False, 0)
+                row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                row.pack_start(label(d["icon"], "icon net-icon"), False, False, 0)
+                texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+                texts.set_valign(Gtk.Align.CENTER)
+                texts.pack_start(label(d["name"], "net-name", xalign=0, ellipsize=True, hexpand=True), False, False, 0)
+                if d["connected"]:
+                    sub = "połączono" + (f" · bateria {d['battery']}%" if d["battery"] is not None else "")
+                elif d["paired"]:
+                    sub = "sparowano · kliknij, aby połączyć"
+                else:
+                    sub = "kliknij, aby sparować"
+                texts.pack_start(label(sub, "net-sub", xalign=0, ellipsize=True, hexpand=True), False, False, 0)
+                row.pack_start(texts, True, True, 0)
+                if d["connected"]:
+                    row.pack_start(label(I["check"], "icon net-check"), False, False, 0)
+                b = button(row, "net" + (" active" if d["connected"] else ""), lambda d=d: self.pick_bt(d))
+                self.bt_list.pack_start(b, False, False, 0)
+            self.bt_list.show_all()
+            if not devices and self.state.get("bt_on") and not self.bt_status.get_text():
+                self.bt_status.set_text("Brak urządzeń. Kliknij 󰑐, aby szukać.")
+            return False
+
+        def pick_bt(self, d):
+            if self.bt_busy:
+                return
+            mac, name = d["mac"], d["name"]
+            if d["connected"]:
+                steps, msg, done = [["bluetoothctl", "disconnect", mac]], f"Rozłączam {name}…", f"Rozłączono {name}"
+            elif d["paired"]:
+                steps, msg, done = [["bluetoothctl", "connect", mac]], f"Łączę z {name}…", f"Połączono z {name}"
+            else:
+                steps = [["bluetoothctl", "pair", mac], ["bluetoothctl", "trust", mac], ["bluetoothctl", "connect", mac]]
+                msg, done = f"Paruję z {name}… (potwierdź kod, jeśli się pojawi)", f"Sparowano i połączono z {name}"
+            self.bt_busy = True
+            self.bt_status.set_text(msg)
+
+            def work():
+                ok, err = True, ""
+                for step in steps:
+                    rc, so, se = run(step, timeout=40)
+                    text = so + se
+                    if rc != 0 or "Failed" in text or "not available" in text:
+                        ok = False
+                        lines = [l.strip() for l in text.splitlines() if l.strip()]
+                        err = lines[-1] if lines else "nieznany błąd"
+                        break
+                time.sleep(0.5)
+                GLib.idle_add(self.bt_done, ok, done, err, d)
+            threading.Thread(target=work, daemon=True).start()
+
+        def bt_done(self, ok, done, err, d):
+            self.bt_busy = False
+            if ok:
+                self.bt_status.set_text(done)
+            elif not d["paired"]:
+                self.bt_status.set_text(f"Nie udało się sparować ({err}). Spróbuj w menedżerze {I['cog']}")
+            else:
+                self.bt_status.set_text(f"Nie udało się: {err}. Czy urządzenie jest włączone i w pobliżu?")
+            self.wake.set()
+            self.bt_reload()
+            return False
+
         # --- odświeżanie stanu -----------------------------------------------------------
         def poll_loop(self):
             while self.alive:
@@ -729,6 +920,8 @@ def main_gui():
                 return
             self.alive = False
             self.wake.set()
+            if self.bt_scan_proc is not None and self.bt_scan_proc.poll() is None:
+                self.bt_scan_proc.terminate()   # przestań szukać urządzeń po zamknięciu panelu
             Gtk.main_quit()
 
     panel = Panel()
