@@ -1,0 +1,152 @@
+/* VoxOS - panel szybkich ustawień (voxos-panel), motyw "dot": czerń, biel, szarości, czerwony akcent */
+
+/* Przezroczysta warstwa na cały ekran (klik obok panelu go zamyka) */
+#voxos-panel-window, #voxos-panel-root {
+    background: transparent;
+    background-color: transparent;
+}
+
+#panel {
+    background-color: rgba(0, 0, 0, 0.96);
+    border: 1px solid #2A2A2A;
+    border-radius: 28px;
+    padding: 18px;
+    margin-top: 54px;      /* pod paskiem: 8 odstępu + 38 wysokości + 8 */
+    margin-right: 12px;
+    min-width: 400px;
+    color: #EDEDED;
+    font-family: "Space Mono", "JetBrainsMono Nerd Font";
+    font-size: 12px;
+}
+
+#panel label { color: #EDEDED; }
+#panel .icon { font-family: "JetBrainsMono Nerd Font"; font-size: 16px; }
+
+/* Przyciski bez wyglądu z motywu GTK */
+#panel button {
+    background: none;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+    outline-style: none;
+    text-shadow: none;
+    -gtk-icon-shadow: none;
+    padding: 0;
+    min-height: 0;
+    min-width: 0;
+}
+
+/* Góra: bateria i okrągłe przyciski */
+#panel .battery { font-size: 12px; color: #EDEDED; }
+#panel button.round {
+    background-color: #111111;
+    border-radius: 18px;
+    min-width: 36px;
+    min-height: 36px;
+}
+#panel button.round:hover { background-color: #1E1E1E; }
+#panel button.power label { color: #D71921; }
+
+/* Suwaki */
+#panel button.slider-icon {
+    border-radius: 18px;
+    min-width: 36px;
+    min-height: 36px;
+}
+#panel button.slider-icon:hover { background-color: #111111; }
+#panel .slider-icon-static { min-width: 36px; }
+#panel scale { padding: 10px 6px; }
+#panel scale trough {
+    min-height: 6px;
+    border-radius: 3px;
+    background-color: #262626;
+    border: none;
+}
+#panel scale highlight {
+    border-radius: 3px;
+    background-color: #EDEDED;
+    border: none;
+}
+#panel scale.muted highlight { background-color: #5A5A5A; }
+#panel scale slider {
+    min-width: 16px;
+    min-height: 16px;
+    margin: -5px 0;
+    border-radius: 8px;
+    background-color: #EDEDED;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+}
+
+/* Kafelki */
+#panel .tile {
+    background-color: #111111;
+    border-radius: 24px;
+    min-height: 52px;
+}
+#panel .tile button.tile-main { padding: 0 12px; border-radius: 24px; }
+#panel .tile.has-arrow button.tile-main { border-radius: 24px 0 0 24px; }
+#panel .tile button.tile-arrow {
+    padding: 0 14px;
+    border-radius: 0 24px 24px 0;
+    border-left: 1px solid #262626;
+}
+#panel .tile button:hover { background-color: rgba(255, 255, 255, 0.06); }
+#panel .tile-title { font-weight: bold; font-size: 12px; }
+#panel .tile-sub   { font-size: 10px; color: #8A8A8A; }
+#panel .tile-icon  { color: #8A8A8A; }
+
+/* Włączony kafelek: biały z czerwoną ikoną (jak przełączniki w Nothing OS) */
+#panel .tile.on { background-color: #EDEDED; }
+#panel .tile.on label { color: #000000; }
+#panel .tile.on .tile-sub { color: #4A4A4A; }
+#panel .tile.on .tile-icon { color: #D71921; }
+#panel .tile.on button.tile-arrow { border-left-color: #C8C8C8; }
+#panel .tile.on button:hover { background-color: rgba(0, 0, 0, 0.06); }
+#panel .tile:disabled { opacity: 0.45; }
+
+/* Muzyka */
+#panel .media {
+    background-color: #111111;
+    border-radius: 22px;
+    padding: 10px 10px 10px 16px;
+}
+#panel .media-title  { font-weight: bold; }
+#panel .media-artist { color: #8A8A8A; font-size: 10px; }
+#panel button.media-btn { min-width: 34px; min-height: 34px; border-radius: 17px; }
+#panel button.media-btn:hover { background-color: #1E1E1E; }
+
+/* Strona Wi-Fi */
+#panel .page-title { font-weight: bold; font-size: 13px; }
+#panel button.net { padding: 10px 12px; border-radius: 16px; }
+#panel button.net:hover { background-color: #111111; }
+#panel button.net .net-name { color: #BDBDBD; }
+#panel button.net.active .net-name { color: #EDEDED; font-weight: bold; }
+#panel .net-icon, #panel .net-lock { color: #8A8A8A; font-size: 14px; }
+#panel .net-check { color: #D71921; }
+#panel entry {
+    background-color: #111111;
+    background-image: none;
+    border: 1px solid #2A2A2A;
+    border-radius: 18px;
+    padding: 8px 14px;
+    color: #EDEDED;
+    caret-color: #D71921;
+    box-shadow: none;
+}
+#panel entry:focus { border-color: #5A5A5A; }
+#panel button.pill {
+    background-color: #EDEDED;
+    border-radius: 18px;
+    padding: 8px 16px;
+}
+#panel button.pill label { color: #000000; font-weight: bold; }
+#panel button.pill:hover { background-color: #FFFFFF; }
+#panel .status { color: #8A8A8A; font-size: 10px; }
+
+#panel scrollbar { background: transparent; border: none; }
+#panel scrollbar slider { background-color: #2A2A2A; border-radius: 4px; min-width: 4px; border: none; }
+
+tooltip { background-color: #000000; border: 1px solid #2A2A2A; border-radius: 12px; }
+tooltip label { color: #EDEDED; }

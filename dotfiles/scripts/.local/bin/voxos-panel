@@ -1,0 +1,784 @@
+#!/usr/bin/env python3
+# VoxOS - panel szybkich ustawień (w stylu GNOME), otwierany kliknięciem w pigułkę na pasku.
+# Drugie uruchomienie zamyka otwarty panel. Zamykanie: klik obok, Esc albo ponowny klik w pasek.
+# Wygląd: ~/.config/voxos/current/panel.css (plik w każdym motywie).
+# Wymaga: python-gobject, gtk3, gtk-layer-shell (packages/base.txt).
+import os
+import re
+import shutil
+import signal
+import socket
+import subprocess
+import sys
+import threading
+import time
+import json
+
+HOME = os.path.expanduser("~")
+BIN = os.path.join(HOME, ".local/bin")
+RUNTIME = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
+PIDFILE = os.path.join(RUNTIME, "voxos-panel.pid")
+CSS = os.path.join(HOME, ".config/voxos/current/panel.css")
+AIRPLANE = os.path.join(HOME, ".local/state/voxos/airplane")
+
+# Ikony (JetBrainsMono Nerd Font, Material Design)
+I = {
+    "wifi": ["󰤟", "󰤢", "󰤥", "󰤨"], "wifi_off": "󰤮", "lock": "󰌾",
+    "bt": "󰂯", "bt_off": "󰂲", "bt_conn": "󰂱",
+    "vol": ["󰕿", "󰖀", "󰕾"], "vol_mute": "󰖁",
+    "bright": "󰃠", "night": "󰖔", "dnd": "󰂛", "bell": "󰂚",
+    "mic": "󰍬", "mic_off": "󰍭", "coffee": "󰅶", "plane": "󰀝",
+    "phone": "󰄜", "phone_off": "󰥐", "right": "󰅂", "left": "󰅁", "refresh": "󰑐",
+    "check": "󰄬", "power": "󰐥", "shot": "󰹑", "palette": "󰏘",
+    "play": "󰐊", "pause": "󰏤", "next": "󰒭", "prev": "󰒮",
+}
+
+
+# --- Narzędzia -------------------------------------------------------------------
+def run(cmd, timeout=3, input=None):
+    """Uruchamia komendę i zwraca (kod, stdout, stderr). Nigdy nie rzuca wyjątku."""
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, input=input)
+        return p.returncode, p.stdout, p.stderr
+    except Exception as e:  # brak programu, timeout itp.
+        return 1, "", str(e)
+
+
+def out(cmd, timeout=3):
+    return run(cmd, timeout)[1]
+
+
+def spawn(cmd):
+    try:
+        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         stdin=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        pass
+
+
+def have(prog):
+    return shutil.which(prog) is not None
+
+
+def script(name):
+    return ["bash", os.path.join(BIN, name)]
+
+
+def split_t(line):
+    """Dzieli linię z `nmcli -t` po dwukropkach (z obsługą \\: i \\\\)."""
+    fields, cur, esc = [], "", False
+    for ch in line:
+        if esc:
+            cur += ch
+            esc = False
+        elif ch == "\\":
+            esc = True
+        elif ch == ":":
+            fields.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    fields.append(cur)
+    return fields
+
+
+def wifi_icon(signal_strength):
+    s = max(0, min(100, signal_strength))
+    return I["wifi"][min(3, s // 25)]
+
+
+def hyprsunset(cmd):
+    """Rozmowa z hyprsunset przez jego gniazdo (nocne światło)."""
+    his = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+    path = os.path.join(RUNTIME, "hypr", his, ".hyprsunset.sock") if his else os.path.join(RUNTIME, "hypr", ".hyprsunset.sock")
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+            s.settimeout(1)
+            s.connect(path)
+            s.sendall(cmd.encode())
+            return s.recv(256).decode(errors="replace").strip()
+    except OSError:
+        return None
+
+
+# --- Odczyt stanu systemu (w osobnym wątku) --------------------------------------
+def read_state(with_phone):
+    st = {}
+
+    v = out(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"])
+    m = re.search(r"([\d.]+)", v)
+    st["vol"] = round(float(m.group(1)) * 100) if m else None
+    st["muted"] = "MUTED" in v
+    mic = out(["wpctl", "get-volume", "@DEFAULT_AUDIO_SOURCE@"])
+    st["mic_present"] = bool(mic.strip())
+    st["mic_muted"] = "MUTED" in mic
+
+    b = out(["brightnessctl", "-m"]).strip().split(",")
+    try:
+        st["bright"] = int(b[3].rstrip("%"))
+    except (IndexError, ValueError):
+        st["bright"] = None
+
+    st["wifi_on"] = out(["nmcli", "-t", "radio", "wifi"]).strip() == "enabled"
+    st["ssid"], st["signal"] = "", 0
+    for line in out(["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL", "device", "wifi", "list", "--rescan", "no"]).splitlines():
+        f = split_t(line)
+        if len(f) >= 3 and f[0] == "*":
+            st["ssid"] = f[1]
+            st["signal"] = int(f[2]) if f[2].isdigit() else 0
+            break
+    st["wired"] = any(split_t(l)[0] == "802-3-ethernet"
+                      for l in out(["nmcli", "-t", "-f", "TYPE", "connection", "show", "--active"]).splitlines())
+
+    show = out(["bluetoothctl", "show"])
+    st["bt_present"] = "Controller" in show
+    st["bt_on"] = "Powered: yes" in show
+    st["bt_dev"] = ""
+    if st["bt_on"]:
+        for line in out(["bluetoothctl", "devices", "Connected"]).splitlines():
+            parts = line.split(" ", 2)
+            if len(parts) == 3 and parts[0] == "Device":
+                st["bt_dev"] = parts[2]
+                break
+
+    ident = hyprsunset("identity get")
+    st["night"] = None if ident is None else ident == "false"
+    st["dnd"] = "do-not-disturb" in out(["makoctl", "mode"]).split()
+    st["caffeine"] = not out(["pgrep", "-x", "hypridle"]).strip()
+
+    try:
+        st["bat"] = json.loads(out(["python3", os.path.join(BIN, "voxos-battery-info")]) or "null")
+    except ValueError:
+        st["bat"] = None
+
+    st["player"] = None
+    if have("playerctl"):
+        status = out(["playerctl", "status"]).strip()
+        if status in ("Playing", "Paused"):
+            meta = out(["playerctl", "metadata", "--format", "{{title}}\t{{artist}}"]).rstrip("\n").split("\t")
+            st["player"] = {"playing": status == "Playing",
+                            "title": meta[0] if meta else "",
+                            "artist": meta[1] if len(meta) > 1 else ""}
+
+    if with_phone and have("kdeconnect-cli"):
+        names = out(["kdeconnect-cli", "-a", "--name-only"], timeout=4).strip().splitlines()
+        st["phone"] = names[0] if names else ""
+    return st
+
+
+# --- Interfejs -----------------------------------------------------------------------
+def main_gui():
+    import gi
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")
+    gi.require_version("Pango", "1.0")
+    try:
+        gi.require_version("GtkLayerShell", "0.1")
+        from gi.repository import GtkLayerShell
+    except (ValueError, ImportError):
+        GtkLayerShell = None
+    from gi.repository import Gtk, Gdk, GLib, Pango
+
+    def label(text="", cls=None, xalign=None, ellipsize=False, hexpand=False):
+        w = Gtk.Label(label=text)
+        if cls:
+            for c in cls.split():
+                w.get_style_context().add_class(c)
+        if xalign is not None:
+            w.set_xalign(xalign)
+        if ellipsize:
+            w.set_ellipsize(Pango.EllipsizeMode.END)
+            w.set_max_width_chars(1)
+        w.set_hexpand(hexpand)
+        return w
+
+    def button(child, cls, callback, tooltip=None):
+        b = Gtk.Button()
+        b.set_relief(Gtk.ReliefStyle.NONE)
+        b.set_can_focus(False)
+        if isinstance(child, str):
+            child = label(child, "icon")
+        b.add(child)
+        for c in cls.split():
+            b.get_style_context().add_class(c)
+        b.connect("clicked", lambda *_: callback())
+        if tooltip:
+            b.set_tooltip_text(tooltip)
+        return b
+
+    class Tile:
+        """Kafelek jak w GNOME: część główna (przełącznik) + opcjonalna strzałka."""
+
+        def __init__(self, icon, title, on_click, on_arrow=None):
+            self.box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+            self.box.get_style_context().add_class("tile")
+            inner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            self.icon = label(icon, "tile-icon icon")
+            texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            texts.set_valign(Gtk.Align.CENTER)
+            self.title = label(title, "tile-title", xalign=0, ellipsize=True, hexpand=True)
+            self.sub = label("", "tile-sub", xalign=0, ellipsize=True, hexpand=True)
+            texts.pack_start(self.title, False, False, 0)
+            texts.pack_start(self.sub, False, False, 0)
+            inner.pack_start(self.icon, False, False, 0)
+            inner.pack_start(texts, True, True, 0)
+            self.main = button(inner, "tile-main", on_click)
+            self.main.set_hexpand(True)
+            self.box.pack_start(self.main, True, True, 0)
+            if on_arrow:
+                self.box.get_style_context().add_class("has-arrow")
+                self.box.pack_start(button(I["right"], "tile-arrow", on_arrow), False, False, 0)
+
+        def set(self, on, sub=None, icon=None, sensitive=True):
+            ctx = self.box.get_style_context()
+            (ctx.add_class if on else ctx.remove_class)("on")
+            if sub is not None:
+                self.sub.set_text(sub)
+                self.sub.set_visible(bool(sub))
+            if icon is not None:
+                self.icon.set_text(icon)
+            self.box.set_sensitive(sensitive)
+
+    class Panel:
+        def __init__(self):
+            self.state = {}
+            self.updating = False
+            self.user_touch = {"vol": 0.0, "bright": 0.0}
+            self.pending = {}
+            self.wake = threading.Event()
+            self.alive = True
+            self.last_phone = 0.0
+            self.wifi_target = None
+
+            self.win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+            self.win.set_name("voxos-panel-window")
+            self.win.set_title("VoxOS panel")
+            self.win.set_decorated(False)
+            screen = self.win.get_screen()
+            visual = screen.get_rgba_visual()
+            if visual is not None:
+                self.win.set_visual(visual)
+            self.win.set_app_paintable(True)
+
+            if GtkLayerShell is not None and getattr(GtkLayerShell, "is_supported", lambda: True)():
+                GtkLayerShell.init_for_window(self.win)
+                GtkLayerShell.set_namespace(self.win, "voxos-panel")
+                GtkLayerShell.set_layer(self.win, GtkLayerShell.Layer.OVERLAY)
+                for edge in (GtkLayerShell.Edge.TOP, GtkLayerShell.Edge.BOTTOM,
+                             GtkLayerShell.Edge.LEFT, GtkLayerShell.Edge.RIGHT):
+                    GtkLayerShell.set_anchor(self.win, edge, True)
+                GtkLayerShell.set_exclusive_zone(self.win, -1)
+                if hasattr(GtkLayerShell, "set_keyboard_mode"):
+                    GtkLayerShell.set_keyboard_mode(self.win, GtkLayerShell.KeyboardMode.EXCLUSIVE)
+                else:
+                    GtkLayerShell.set_keyboard_interactivity(self.win, True)
+            else:
+                self.win.set_default_size(420, 640)   # awaryjnie: zwykłe okno
+
+            provider = Gtk.CssProvider()
+            try:
+                provider.load_from_path(CSS)
+            except Exception as e:
+                print(f"voxos-panel: nie wczytano {CSS}: {e}", file=sys.stderr)
+            Gtk.StyleContext.add_provider_for_screen(screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
+
+            # Cały ekran to przezroczysta warstwa: klik poza panelem go zamyka
+            self.root = Gtk.EventBox()
+            self.root.set_name("voxos-panel-root")
+            self.root.connect("button-press-event", self.on_root_click)
+            self.win.add(self.root)
+
+            self.panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            self.panel.set_name("panel")
+            self.panel.set_halign(Gtk.Align.END)
+            self.panel.set_valign(Gtk.Align.START)
+            self.root.add(self.panel)
+
+            self.stack = Gtk.Stack()
+            self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+            self.stack.set_transition_duration(180)
+            self.stack.set_hhomogeneous(True)
+            self.stack.set_vhomogeneous(False)
+            self.stack.set_interpolate_size(True)
+            self.panel.pack_start(self.stack, True, True, 0)
+            self.stack.add_named(self.build_main(), "main")
+            self.stack.add_named(self.build_wifi(), "wifi")
+
+            self.win.connect("key-press-event", self.on_key)
+            self.win.connect("destroy", lambda *_: self.quit())
+            self.win.show_all()
+            self.pass_row.hide()
+            self.media.hide()
+            self.stack.set_visible_child_name("main")
+
+            threading.Thread(target=self.poll_loop, daemon=True).start()
+
+        # --- budowa widoków ---------------------------------------------------------
+        def build_main(self):
+            page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+
+            head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            self.bat_label = label("", "battery", xalign=0, ellipsize=True, hexpand=True)
+            head.pack_start(self.bat_label, True, True, 0)
+            head.pack_start(button(I["shot"], "round", self.act_screenshot, "Zrzut ekranu"), False, False, 0)
+            head.pack_start(button(I["palette"], "round", lambda: self.close_then(script("voxos-theme")), "Motyw"), False, False, 0)
+            head.pack_start(button(I["lock"], "round", lambda: self.close_then(["hyprlock"]), "Zablokuj"), False, False, 0)
+            head.pack_start(button(I["power"], "round power", lambda: self.close_then(script("voxos-power")), "Zasilanie"), False, False, 0)
+            page.pack_start(head, False, False, 0)
+
+            # Suwaki
+            self.vol_btn = button(I["vol"][2], "slider-icon", self.act_mute, "Wycisz")
+            self.vol_scale = self.make_scale(0, 100, "vol")
+            vol_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            vol_row.pack_start(self.vol_btn, False, False, 0)
+            vol_row.pack_start(self.vol_scale, True, True, 0)
+            vol_row.pack_start(button(I["right"], "slider-icon", lambda: self.close_then(["pavucontrol"]), "Mikser dźwięku"), False, False, 0)
+            page.pack_start(vol_row, False, False, 0)
+
+            self.bright_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            self.bright_scale = self.make_scale(1, 100, "bright")
+            self.bright_row.pack_start(label(I["bright"], "slider-icon-static icon"), False, False, 0)
+            self.bright_row.pack_start(self.bright_scale, True, True, 0)
+            page.pack_start(self.bright_row, False, False, 0)
+
+            # Kafelki
+            grid = Gtk.Grid()
+            grid.set_column_homogeneous(True)
+            grid.set_row_spacing(10)
+            grid.set_column_spacing(10)
+            self.t_wifi = Tile(I["wifi"][3], "Wi-Fi", self.act_wifi, self.show_wifi)
+            self.t_bt = Tile(I["bt"], "Bluetooth", self.act_bt, lambda: self.close_then(["blueman-manager"]))
+            self.t_night = Tile(I["night"], "Nocne światło", self.act_night)
+            self.t_dnd = Tile(I["dnd"], "Nie przeszkadzać", self.act_dnd)
+            self.t_mic = Tile(I["mic"], "Mikrofon", self.act_mic)
+            self.t_caff = Tile(I["coffee"], "Bez usypiania", self.act_caffeine)
+            self.t_plane = Tile(I["plane"], "Tryb samolotowy", self.act_airplane)
+            self.t_phone = Tile(I["phone"], "Telefon", lambda: self.close_then(["kdeconnect-app"]))
+            tiles = [self.t_wifi, self.t_bt, self.t_night, self.t_dnd,
+                     self.t_mic, self.t_caff, self.t_plane, self.t_phone]
+            for i, t in enumerate(tiles):
+                grid.attach(t.box, i % 2, i // 2, 1, 1)
+            page.pack_start(grid, False, False, 0)
+
+            # Muzyka (tylko gdy coś gra)
+            self.media = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            self.media.get_style_context().add_class("media")
+            texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            texts.set_valign(Gtk.Align.CENTER)
+            self.media_title = label("", "media-title", xalign=0, ellipsize=True, hexpand=True)
+            self.media_artist = label("", "media-artist", xalign=0, ellipsize=True, hexpand=True)
+            texts.pack_start(self.media_title, False, False, 0)
+            texts.pack_start(self.media_artist, False, False, 0)
+            self.media.pack_start(texts, True, True, 0)
+            self.media.pack_start(button(I["prev"], "media-btn", lambda: self.cmd(["playerctl", "previous"])), False, False, 0)
+            self.play_btn = button(I["play"], "media-btn", lambda: self.cmd(["playerctl", "play-pause"]))
+            self.media.pack_start(self.play_btn, False, False, 0)
+            self.media.pack_start(button(I["next"], "media-btn", lambda: self.cmd(["playerctl", "next"])), False, False, 0)
+            page.pack_start(self.media, False, False, 0)
+            return page
+
+        def build_wifi(self):
+            page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            head.pack_start(button(I["left"], "round", self.show_main, "Wróć"), False, False, 0)
+            head.pack_start(label("Wi-Fi", "page-title", xalign=0, hexpand=True), True, True, 0)
+            head.pack_start(button(I["refresh"], "round", self.scan, "Szukaj sieci"), False, False, 0)
+            page.pack_start(head, False, False, 0)
+
+            scroll = Gtk.ScrolledWindow()
+            scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+            scroll.set_propagate_natural_height(True)
+            scroll.set_max_content_height(340)
+            self.net_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            scroll.add(self.net_list)
+            page.pack_start(scroll, False, False, 0)
+
+            self.pass_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            self.pass_entry = Gtk.Entry()
+            self.pass_entry.set_visibility(False)
+            self.pass_entry.set_placeholder_text("Hasło")
+            self.pass_entry.set_hexpand(True)
+            self.pass_entry.connect("activate", lambda *_: self.connect_with_password())
+            self.pass_row.pack_start(self.pass_entry, True, True, 0)
+            self.pass_row.pack_start(button(label("Połącz", "pill-text"), "pill", self.connect_with_password), False, False, 0)
+            page.pack_start(self.pass_row, False, False, 0)
+
+            self.wifi_status = label("", "status", xalign=0, ellipsize=True, hexpand=True)
+            page.pack_start(self.wifi_status, False, False, 0)
+            return page
+
+        def make_scale(self, lo, hi, key):
+            adj = Gtk.Adjustment(value=lo, lower=lo, upper=hi, step_increment=1, page_increment=5, page_size=0)
+            s = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
+            s.set_draw_value(False)
+            s.set_hexpand(True)
+            s.set_valign(Gtk.Align.CENTER)
+            s.connect("value-changed", lambda w: self.on_scale(key, w.get_value()))
+            return s
+
+        # --- zdarzenia ----------------------------------------------------------------
+        def on_root_click(self, widget, event):
+            src = Gtk.get_event_widget(event)
+            if src is not None and src is not self.root and (src is self.panel or src.is_ancestor(self.panel)):
+                return False
+            if src is self.root:
+                a = self.panel.get_allocation()
+                if a.x <= event.x <= a.x + a.width and a.y <= event.y <= a.y + a.height:
+                    return False
+            self.quit()
+            return True
+
+        def on_key(self, widget, event):
+            if event.keyval == Gdk.KEY_Escape:
+                if self.stack.get_visible_child_name() == "wifi":
+                    self.show_main()
+                else:
+                    self.quit()
+                return True
+            return False
+
+        def on_scale(self, key, value):
+            if self.updating:
+                return
+            self.user_touch[key] = time.monotonic()
+            first = key not in self.pending
+            self.pending[key] = int(round(value))
+            if first:
+                GLib.timeout_add(60, self.flush_scale, key)
+
+        def flush_scale(self, key):
+            value = self.pending.pop(key, None)
+            if value is None:
+                return False
+            if key == "vol":
+                cmds = [["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", f"{value / 100:.2f}"]]
+                if self.state.get("muted") and value > 0:
+                    cmds.append(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "0"])
+                self.vol_btn.get_child().set_text(self.vol_icon(value, False))
+            else:
+                cmds = [["brightnessctl", "-q", "set", f"{max(1, value)}%"]]
+            threading.Thread(target=lambda: [run(c) for c in cmds], daemon=True).start()
+            return False
+
+        # --- akcje --------------------------------------------------------------------
+        def cmd(self, *cmds):
+            """Komendy w tle, potem szybkie odświeżenie stanu."""
+            def work():
+                for c in cmds:
+                    run(c, timeout=10)
+                time.sleep(0.25)
+                self.wake.set()
+            threading.Thread(target=work, daemon=True).start()
+
+        def close_then(self, command, delay_ms=0):
+            self.win.hide()
+            if delay_ms:   # np. zrzut ekranu: najpierw niech panel zniknie z ekranu
+                GLib.timeout_add(delay_ms, lambda: (spawn(command), self.quit(), False)[2])
+            else:
+                spawn(command)
+                self.quit()
+
+        def act_screenshot(self):
+            self.close_then(script("voxos-screenshot") + ["area"], delay_ms=350)
+
+        def act_mute(self):
+            self.cmd(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
+
+        def act_wifi(self):
+            self.cmd(["nmcli", "radio", "wifi", "off" if self.state.get("wifi_on") else "on"])
+
+        def act_bt(self):
+            if self.state.get("bt_on"):
+                self.cmd(["bluetoothctl", "power", "off"])
+            else:
+                self.cmd(["rfkill", "unblock", "bluetooth"], ["bluetoothctl", "power", "on"])
+
+        def act_night(self):
+            on = self.state.get("night")
+            threading.Thread(target=lambda: (hyprsunset("identity" if on else "temperature 4500"), self.wake.set()),
+                             daemon=True).start()
+
+        def act_dnd(self):
+            self.cmd(["makoctl", "mode", "-t", "do-not-disturb"])
+
+        def act_mic(self):
+            self.cmd(["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"])
+
+        def act_caffeine(self):
+            if self.state.get("caffeine"):
+                spawn(["hypridle"])
+                self.cmd(["true"])
+            else:
+                self.cmd(["pkill", "-x", "hypridle"])
+
+        def act_airplane(self):
+            if self.airplane():
+                try:
+                    os.remove(AIRPLANE)
+                except OSError:
+                    pass
+                self.cmd(["nmcli", "radio", "all", "on"], ["rfkill", "unblock", "bluetooth"],
+                         ["bluetoothctl", "power", "on"])
+            else:
+                os.makedirs(os.path.dirname(AIRPLANE), exist_ok=True)
+                open(AIRPLANE, "w").close()
+                self.cmd(["nmcli", "radio", "all", "off"], ["bluetoothctl", "power", "off"])
+
+        def airplane(self):
+            # Znacznik ustawiany przez kafelek; gdy ktoś sam włączy Wi-Fi, tryb samolotowy się wyłącza
+            return os.path.exists(AIRPLANE) and not self.state.get("wifi_on", False)
+
+        # --- Wi-Fi ---------------------------------------------------------------------
+        def show_main(self):
+            self.stack.set_visible_child_name("main")
+
+        def show_wifi(self):
+            self.stack.set_visible_child_name("wifi")
+            self.pass_row.hide()
+            self.scan()
+
+        def scan(self):
+            if not self.state.get("wifi_on", True):
+                self.wifi_status.set_text("Wi-Fi jest wyłączone")
+                return
+            self.wifi_status.set_text("Szukam sieci…")
+
+            def work():
+                rc, text, _ = run(["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY",
+                                   "device", "wifi", "list", "--rescan", "yes"], timeout=20)
+                saved = set()
+                for line in out(["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"]).splitlines():
+                    f = split_t(line)
+                    if len(f) >= 2 and f[1] == "802-11-wireless":
+                        saved.add(f[0])
+                nets = {}
+                for line in text.splitlines():
+                    f = split_t(line)
+                    if len(f) < 4 or not f[1]:
+                        continue
+                    ssid = f[1]
+                    sig = int(f[2]) if f[2].isdigit() else 0
+                    secure = f[3] not in ("", "--")
+                    old = nets.get(ssid)
+                    if old is None or sig > old["signal"] or f[0] == "*":
+                        nets[ssid] = {"ssid": ssid, "signal": sig, "secure": secure,
+                                      "active": f[0] == "*" or (old or {}).get("active", False),
+                                      "saved": ssid in saved}
+                ordered = sorted(nets.values(), key=lambda n: (not n["active"], -n["signal"]))
+                GLib.idle_add(self.fill_networks, ordered)
+            threading.Thread(target=work, daemon=True).start()
+
+        def fill_networks(self, nets):
+            for child in self.net_list.get_children():
+                self.net_list.remove(child)
+            for n in nets:
+                row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                row.pack_start(label(wifi_icon(n["signal"]), "icon net-icon"), False, False, 0)
+                row.pack_start(label(n["ssid"], "net-name", xalign=0, ellipsize=True, hexpand=True), True, True, 0)
+                if n["secure"]:
+                    row.pack_start(label(I["lock"], "icon net-lock"), False, False, 0)
+                if n["active"]:
+                    row.pack_start(label(I["check"], "icon net-check"), False, False, 0)
+                b = button(row, "net" + (" active" if n["active"] else ""), lambda n=n: self.pick_network(n))
+                self.net_list.pack_start(b, False, False, 0)
+            self.net_list.show_all()
+            self.wifi_status.set_text("" if nets else "Nie znaleziono sieci")
+            return False
+
+        def pick_network(self, n):
+            if n["active"]:
+                self.wifi_status.set_text(f"Połączono z {n['ssid']}")
+                return
+            self.wifi_target = n
+            if n["saved"]:
+                self.connect_wifi(["nmcli", "connection", "up", "id", n["ssid"]], n["ssid"])
+            elif not n["secure"]:
+                self.connect_wifi(["nmcli", "device", "wifi", "connect", n["ssid"]], n["ssid"])
+            else:
+                self.ask_password(n["ssid"])
+
+        def ask_password(self, ssid):
+            self.pass_entry.set_text("")
+            self.pass_row.show_all()
+            self.pass_entry.grab_focus()
+            self.wifi_status.set_text(f"Hasło do sieci {ssid}")
+
+        def connect_with_password(self):
+            n = self.wifi_target
+            pwd = self.pass_entry.get_text()
+            if not n or not pwd:
+                return
+            self.pass_row.hide()
+            self.connect_wifi(["nmcli", "device", "wifi", "connect", n["ssid"], "password", pwd], n["ssid"])
+
+        def connect_wifi(self, command, ssid):
+            self.wifi_status.set_text(f"Łączę z {ssid}…")
+
+            def work():
+                rc, _, err = run(command, timeout=45)
+                GLib.idle_add(self.connect_done, rc, err, ssid)
+            threading.Thread(target=work, daemon=True).start()
+
+        def connect_done(self, rc, err, ssid):
+            if rc == 0:
+                self.wifi_status.set_text(f"Połączono z {ssid}")
+                self.wake.set()
+                GLib.timeout_add(900, lambda: (self.show_main(), False)[1])
+            else:
+                msg = (err.strip().splitlines() or ["nieznany błąd"])[-1]
+                self.wifi_status.set_text(f"Nie udało się: {msg}")
+                n = self.wifi_target
+                if n and n["secure"]:
+                    self.ask_password(ssid)   # np. złe lub zmienione hasło
+            return False
+
+        # --- odświeżanie stanu -----------------------------------------------------------
+        def poll_loop(self):
+            while self.alive:
+                with_phone = time.monotonic() - self.last_phone > 6
+                st = read_state(with_phone)
+                if with_phone:
+                    self.last_phone = time.monotonic()
+                elif "phone" in self.state:
+                    st["phone"] = self.state["phone"]
+                GLib.idle_add(self.apply_state, st)
+                self.wake.wait(2.0)
+                self.wake.clear()
+
+        @staticmethod
+        def vol_icon(vol, muted):
+            if muted or not vol:
+                return I["vol_mute"]
+            return I["vol"][0 if vol < 34 else 1 if vol < 67 else 2]
+
+        def apply_state(self, st):
+            if not self.alive:
+                return False
+            self.state = st
+            self.updating = True
+            now = time.monotonic()
+            try:
+                bat = st.get("bat")
+                if bat:
+                    self.bat_label.set_text(f"{bat['text']}  {bat['percentage']}% · {bat['desc']}")
+                else:
+                    self.bat_label.set_text("VoxOS")
+
+                if st["vol"] is not None:
+                    if now - self.user_touch["vol"] > 1.5 and "vol" not in self.pending:
+                        self.vol_scale.set_value(0 if st["muted"] else min(100, st["vol"]))
+                    self.vol_btn.get_child().set_text(self.vol_icon(st["vol"], st["muted"]))
+                ctx = self.vol_scale.get_style_context()
+                (ctx.add_class if st["muted"] else ctx.remove_class)("muted")
+
+                if st["bright"] is None:
+                    self.bright_row.hide()
+                else:
+                    self.bright_row.show()
+                    if now - self.user_touch["bright"] > 1.5 and "bright" not in self.pending:
+                        self.bright_scale.set_value(max(1, st["bright"]))
+
+                if st["wired"] and not st["ssid"]:
+                    self.t_wifi.set(st["wifi_on"], "kabel" if not st["wifi_on"] else "kabel, Wi-Fi wolne",
+                                    I["wifi"][3] if st["wifi_on"] else I["wifi_off"])
+                elif st["wifi_on"]:
+                    self.t_wifi.set(True, st["ssid"] or "brak połączenia",
+                                    wifi_icon(st["signal"]) if st["ssid"] else I["wifi"][0])
+                else:
+                    self.t_wifi.set(False, "wyłączone", I["wifi_off"])
+
+                if not st["bt_present"]:
+                    self.t_bt.set(False, "brak adaptera", I["bt_off"], sensitive=False)
+                elif st["bt_on"]:
+                    self.t_bt.set(True, st["bt_dev"] or "włączony", I["bt_conn"] if st["bt_dev"] else I["bt"])
+                else:
+                    self.t_bt.set(False, "wyłączony", I["bt_off"])
+
+                if st["night"] is None:
+                    self.t_night.set(False, "hyprsunset nie działa", sensitive=False)
+                else:
+                    self.t_night.set(st["night"], "włączone" if st["night"] else "")
+                self.t_dnd.set(st["dnd"], "powiadomienia ukryte" if st["dnd"] else "",
+                               I["dnd"] if st["dnd"] else I["bell"])
+                self.t_mic.set(st["mic_present"] and not st["mic_muted"],
+                               ("wyciszony" if st["mic_muted"] else "włączony") if st["mic_present"] else "brak",
+                               I["mic_off"] if st["mic_muted"] or not st["mic_present"] else I["mic"],
+                               sensitive=st["mic_present"])
+                self.t_caff.set(st["caffeine"], "ekran nie zgaśnie" if st["caffeine"] else "")
+                self.t_plane.set(self.airplane(), "radia wyłączone" if self.airplane() else "")
+                if "phone" in st:
+                    self.t_phone.set(bool(st["phone"]), st["phone"] or "niepołączony",
+                                     I["phone"] if st["phone"] else I["phone_off"],
+                                     sensitive=have("kdeconnect-app"))
+
+                p = st.get("player")
+                if p:
+                    self.media_title.set_text(p["title"] or "Muzyka")
+                    self.media_artist.set_text(p["artist"])
+                    self.media_artist.set_visible(bool(p["artist"]))
+                    self.play_btn.get_child().set_text(I["pause"] if p["playing"] else I["play"])
+                    self.media.show()
+                else:
+                    self.media.hide()
+            finally:
+                self.updating = False
+            return False
+
+        def quit(self):
+            if not self.alive:
+                return
+            self.alive = False
+            self.wake.set()
+            Gtk.main_quit()
+
+    panel = Panel()
+    # SIGTERM (drugie uruchomienie voxos-panel) zamyka panel
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        add_signal = getattr(GLib, "unix_signal_add", None)
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        if add_signal:
+            add_signal(GLib.PRIORITY_DEFAULT, sig, lambda *_: (panel.quit(), False)[1])
+        else:
+            signal.signal(sig, lambda *_: GLib.idle_add(lambda: (panel.quit(), False)[1]))
+    Gtk.main()
+
+
+# --- Start: drugie uruchomienie zamyka panel ----------------------------------------
+def running_pid():
+    try:
+        with open(PIDFILE) as f:
+            pid = int(f.read().strip())
+        with open(f"/proc/{pid}/cmdline", "rb") as f:
+            if b"voxos-panel" in f.read() and pid != os.getpid():
+                return pid
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def main():
+    pid = running_pid()
+    if pid:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
+        return
+    if "--close" in sys.argv:
+        return
+    with open(PIDFILE, "w") as f:
+        f.write(str(os.getpid()))
+    try:
+        main_gui()
+    finally:
+        try:
+            if running_pid() is None:
+                os.remove(PIDFILE)
+        except OSError:
+            pass
+
+
+if __name__ == "__main__":
+    main()

@@ -19,6 +19,9 @@ qt5-wayland
 qt6-wayland
 waybar                        # pasek
 rofi                          # launcher aplikacji
+python-gobject                # panel szybkich ustawień (voxos-panel): Python + GTK3
+gtk3
+gtk-layer-shell               # panel jako warstwa nad pulpitem (Wayland)
 kitty                         # terminal
 mako                          # powiadomienia
 libnotify                     # notify-send (powiadomienia ze skryptów)

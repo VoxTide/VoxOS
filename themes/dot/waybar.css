@@ -20,7 +20,7 @@ window#waybar {
     color: @text;
 }
 
-#custom-dot, #workspaces, #clock, #controls, #battery, #custom-power {
+#custom-dot, #workspaces, #clock, #controls, #tray, #custom-power {
     background: @black;
     border: 1px solid @line;
     border-radius: 19px;
@@ -57,43 +57,26 @@ window#waybar {
     padding: 0 20px;
 }
 
-#battery { color: @grey; }
-#battery:hover { color: @text; }
-#battery.charging, #battery.plugged { color: @text; }
-#battery.warning:not(.charging)  { color: @text; border-color: @grey; }
-#battery.critical:not(.charging) { color: @red; border-color: @red; }
 
-/* Jedna pigułka sterowania: jasność, głośność, ikony z zasobnika (Wi-Fi, Bluetooth, telefon).
-   Najechanie na jasność lub głośność wysuwa suwak. */
-#controls { padding: 0 6px; }
-#backlight, #pulseaudio { color: @grey; padding: 0 8px; }
-#backlight:hover, #pulseaudio:hover { color: @text; }
-#pulseaudio.muted { color: @dim; }
-#tray { padding: 0 8px 0 6px; }
+/* Jedna pigułka: Wi-Fi, Bluetooth, głośność, bateria. Klik otwiera panel szybkich ustawień
+   (voxos-panel), klik w baterię pokazuje procent i czas. */
+#controls { padding: 0 8px; }
+#network, #bluetooth, #pulseaudio, #custom-battery {
+    color: @grey;
+    padding: 0 7px;
+    font-family: "JetBrainsMono Nerd Font";
+    font-size: 15px;
+}
+#network:hover, #bluetooth:hover, #pulseaudio:hover, #custom-battery:hover { color: @text; }
+#network.disconnected, #network.disabled, #bluetooth.off, #bluetooth.disabled, #pulseaudio.muted { color: @dim; }
+#custom-battery { font-family: "Space Mono", "JetBrainsMono Nerd Font"; }
+#custom-battery.charging, #custom-battery.full, #custom-battery.plugged { color: @text; }
+#custom-battery.warning  { color: @text; }
+#custom-battery.critical { color: @red; }
+
+/* Zasobnik: inne aplikacje (Wi-Fi, Bluetooth i KDE Connect są w pigułce i panelu) */
+#tray { padding: 0 12px; }
 #tray > .needs-attention { background: @red; border-radius: 8px; }
-
-#backlight-slider, #pulseaudio-slider { padding: 0 2px 0 10px; }
-#backlight-slider trough, #pulseaudio-slider trough {
-    min-width: 90px;
-    min-height: 4px;
-    border-radius: 2px;
-    background: @line;
-}
-#backlight-slider highlight, #pulseaudio-slider highlight {
-    min-height: 4px;
-    border-radius: 2px;
-    background: @text;
-}
-#pulseaudio-slider.muted highlight { background: @dim; }
-#backlight-slider slider, #pulseaudio-slider slider {
-    min-width: 10px;
-    min-height: 10px;
-    margin: -3px 0;
-    border-radius: 5px;
-    background: @text;
-    box-shadow: none;
-    background-image: none;
-}
 
 tooltip {
     background: @black;

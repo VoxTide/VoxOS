@@ -60,7 +60,7 @@ hosts/<host>/
   packages.txt      sterowniki i pakiety tylko dla tego sprzętu
   hypr-host.lua     monitory, jasność, touchpad (Lua)
 dotfiles/           wspólna konfiguracja linkowana do ~ przez GNU Stow
-themes/<motyw>/     wygląd: hypr.lua, waybar, rofi, mako, kitty, hyprlock, tapeta
+themes/<motyw>/     wygląd: hypr.lua, waybar, panel, rofi, mako, kitty, hyprlock, tapeta
 boot/splash.bmp     logo VoxOS przy starcie
 ```
 
@@ -76,6 +76,7 @@ boot/splash.bmp     logo VoxOS przy starcie
 | `Super + Spacja` | okno pływające |
 | `Super + L` | blokada ekranu |
 | `Super + V` | historia schowka |
+| `Super + S` | panel szybkich ustawień |
 | `Super + strzałki` | fokus na sąsiednie okno |
 | `Super + Shift + strzałki` | przesuń okno |
 | `Super + Ctrl + strzałki` | zmień rozmiar okna |
@@ -99,8 +100,8 @@ boot/splash.bmp     logo VoxOS przy starcie
 
 - **Logowanie**: przy `AUTOLOGIN=true` w `host.conf` **greetd** uruchamia Hyprlanda od razu po starcie (bez serwera X, kilka sekund szybciej niż SDDM), a ekran blokady motywu (ten sam co `Super + L`) pełni rolę ekranu logowania, więc hasło jest wymagane (`voxos-session-lock`, log w `$XDG_RUNTIME_DIR/voxos-session-lock.log`). Wylogowanie wraca do tego samego ekranu blokady. `AUTOLOGIN=false` + `bash install.sh` przywraca klasyczny ekran SDDM. Awaryjnie: `Ctrl + Alt + F2`, zaloguj się i `sudo systemctl disable greetd && sudo systemctl enable sddm && sudo reboot`.
 - **Cichy start**: przy `QUIET_BOOT=true` nie widać menu startowego ani przewijających się komunikatów, a zamiast logo Archa pojawia się logo VoxOS (`boot/splash.bmp`). Działa ze zwykłymi wpisami systemd-boot i z UKI (`/etc/kernel/cmdline` + preset mkinitcpio). Menu systemd-boot pokażesz, **przytrzymując Spację** zaraz po logo HP.
-- **Pasek, prawa strona**: jedna pigułka sterowania z jasnością, głośnością i ikonami Wi-Fi, Bluetooth i KDE Connect. Najechanie na jasność lub głośność wysuwa suwak, kółko zmienia wartość (z OSD), klik w głośność otwiera mikser, prawy klik wycisza. Licznik aktualizacji pojawia się tylko, gdy są nowe pakiety.
-- **Launcher i menu** (aplikacje, zasilanie, motywy, schowek) zamykają się kliknięciem obok okna albo `Esc`.
+- **Pasek, prawa strona**: jedna pigułka z ikonami Wi-Fi, Bluetooth, głośności i baterii. Klik (albo `Super + S`) otwiera **panel szybkich ustawień** (`voxos-panel`): bateria z czasem, zrzut ekranu, motyw, blokada, zasilanie, suwaki głośności i jasności, kafelki Wi-Fi (strzałka: lista sieci z hasłem), Bluetooth, nocne światło, nie przeszkadzać, mikrofon, bez usypiania, tryb samolotowy, telefon (KDE Connect) i odtwarzacz muzyki. Zamykanie: klik obok, `Esc` albo ponowny klik w pasek. Klik w baterię na pasku pokazuje procent i czas do rozładowania / do pełna. Kółko na głośności zmienia głośność, prawy klik wycisza. Licznik aktualizacji pojawia się tylko, gdy są nowe pakiety.
+- **Launcher i menu** (aplikacje, zasilanie, motywy, schowek, panel) zamykają się kliknięciem obok okna albo `Esc`.
 - **OSD**: przy zmianie głośności i jasności pojawia się okienko z paskiem (`voxos-osd`).
 - **Bateria**: ostrzeżenie przy 20% i alarm przy 10% (`voxos-battery`, timer systemd co 2 minuty).
 - **Aktualizacje**: licznik na pasku, gdy są nowe pakiety. Kliknięcie otwiera terminal z aktualizacją.

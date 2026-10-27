@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+# VoxOS - stan baterii dla paska (JSON dla Waybara) i panelu szybkich ustawień
+#   ikona na pasku, po kliknięciu: procent i czas do rozładowania / do pełna
+import glob
+import json
+import os
+
+PS = os.environ.get("VOXOS_POWER_SUPPLY", "/sys/class/power_supply")   # zmienna tylko do testów
+
+ICONS = ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+CHARGING = "󰂄"
+PLUGGED = "󰚥"
+
+
+def read(path, default=None):
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except OSError:
+        return default
+
+
+def num(path):
+    v = read(path)
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def fmt_time(hours):
+    if hours is None or hours <= 0 or hours > 48:
+        return None
+    total = int(round(hours * 60))
+    h, m = divmod(total, 60)
+    return f"{h} h {m:02d} min" if h else f"{m} min"
+
+
+def battery():
+    bats = [b for b in glob.glob(f"{PS}/BAT*") if read(f"{b}/type") == "Battery"]
+    if not bats:
+        return None
+    now = full = rate = 0.0
+    caps, statuses = [], []
+    for b in bats:
+        cap = num(f"{b}/capacity")
+        if cap is not None:
+            caps.append(cap)
+        statuses.append(read(f"{b}/status", "Unknown"))
+        # energy_* (µWh, power_now µW) albo charge_* (µAh, current_now µA)
+        e_now, e_full, p = num(f"{b}/energy_now"), num(f"{b}/energy_full"), num(f"{b}/power_now")
+        if e_now is None:
+            e_now, e_full, p = num(f"{b}/charge_now"), num(f"{b}/charge_full"), num(f"{b}/current_now")
+        now += e_now or 0
+        full += e_full or 0
+        rate += abs(p or 0)
+    if full > 0:
+        capacity = round(100 * now / full)
+    else:
+        capacity = round(sum(caps) / len(caps)) if caps else 0
+    capacity = max(0, min(100, capacity))
+
+    if "Charging" in statuses:
+        status = "charging"
+        t = fmt_time((full - now) / rate) if rate > 0 else None
+        desc = f"pełna za {t}" if t else "ładuje się"
+    elif "Discharging" in statuses:
+        status = "discharging"
+        t = fmt_time(now / rate) if rate > 0 else None
+        desc = f"zostało {t}" if t else "na baterii"
+    elif all(s == "Full" for s in statuses) or capacity >= 99:
+        status = "full"
+        desc = "naładowana"
+    else:
+        status = "plugged"   # "Not charging": zasilacz podłączony, ładowanie wstrzymane (np. przez TLP)
+        desc = "zasilacz, bez ładowania"
+
+    if status == "charging":
+        icon = CHARGING
+    elif status == "plugged":
+        icon = PLUGGED
+    else:
+        icon = ICONS[min(9, capacity // 10)]
+    return {"capacity": capacity, "status": status, "desc": desc, "icon": icon}
+
+
+def main():
+    b = battery()
+    if b is None:
+        return  # brak baterii (desktop): moduł się chowa
+    classes = [b["status"]]
+    if b["status"] == "discharging":
+        if b["capacity"] <= 15:
+            classes.append("critical")
+        elif b["capacity"] <= 30:
+            classes.append("warning")
+    print(json.dumps({
+        "text": b["icon"],
+        "alt": f"{b['icon']} {b['capacity']}% · {b['desc']}",
+        "tooltip": f"Bateria {b['capacity']}% · {b['desc']}\nKliknij, aby pokazać na pasku",
+        "class": classes,
+        "percentage": b["capacity"],
+        "desc": b["desc"],
+    }, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
