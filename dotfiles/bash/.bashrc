@@ -1,6 +1,9 @@
 # VoxOS .bashrc
 [[ $- != *i* ]] && return
 
+# Własne skrypty VoxOS (voxos-theme, voxos-power)
+export PATH="$HOME/.local/bin:$PATH"
+
 alias ls='ls --color=auto'
 alias ll='ls -lah'
 alias grep='grep --color=auto'
