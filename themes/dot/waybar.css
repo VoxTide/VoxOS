@@ -20,7 +20,7 @@ window#waybar {
     color: @text;
 }
 
-#custom-dot, #workspaces, #clock, #controls, #tray, #custom-power {
+#custom-dot, #workspaces, #clock, #controls, #tray {
     background: @black;
     border: 1px solid @line;
     border-radius: 19px;
@@ -28,9 +28,8 @@ window#waybar {
     margin: 2px 0;
 }
 
-/* Czerwona kropka na start, czerwony przycisk zasilania na koniec */
+/* Czerwona kropka na start (klik: aplikacje) */
 #custom-dot   { color: @red; font-family: "JetBrainsMono Nerd Font"; font-size: 14px; padding: 0 13px; }
-#custom-power { color: @red; font-family: "JetBrainsMono Nerd Font"; font-size: 15px; padding: 0 15px 0 13px; }
 
 /* Pulpity jako kropki */
 #workspaces { padding: 0 6px; }

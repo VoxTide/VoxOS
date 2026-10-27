@@ -18,8 +18,7 @@
     "modules-right": [
         "custom/updates",
         "tray",
-        "group/controls",
-        "custom/power"
+        "group/controls"
     ],
     "custom/dot": {
         "format": "󰝥",
@@ -151,11 +150,6 @@
             "blueman",
             "kdeconnect"
         ]
-    },
-    "custom/power": {
-        "format": "󰐥",
-        "tooltip": false,
-        "on-click": "bash ~/.local/bin/voxos-power"
     },
     "custom/updates": {
         "exec": "bash ~/.local/bin/voxos-updates",

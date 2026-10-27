@@ -27,7 +27,7 @@ window#waybar {
 }
 
 /* Każdy moduł jako zaokrąglona "pigułka" */
-#custom-arch, #workspaces, #clock, #controls, #tray, #custom-power {
+#custom-arch, #workspaces, #clock, #controls, #tray {
     background: alpha(@nord0, 0.92);
     border: 1px solid @nord1;
     border-radius: 10px;
@@ -36,7 +36,6 @@ window#waybar {
 }
 
 #custom-arch  { color: @nord8; font-size: 16px; padding: 0 14px 0 12px; }
-#custom-power { color: @nord11; font-size: 15px; padding: 0 14px 0 12px; }
 
 #workspaces { padding: 0 4px; }
 #workspaces button {

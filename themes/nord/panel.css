@@ -55,6 +55,7 @@
 }
 #panel button.slider-icon:hover { background-color: #3B4252; }
 #panel .slider-icon-static { min-width: 36px; }
+#panel .scale-value { min-width: 46px; font-size: 11px; color: #D8DEE9; }
 #panel scale { padding: 10px 6px; }
 #panel scale trough {
     min-height: 6px;

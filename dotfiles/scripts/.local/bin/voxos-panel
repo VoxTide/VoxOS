@@ -19,6 +19,7 @@ BIN = os.path.join(HOME, ".local/bin")
 RUNTIME = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
 PIDFILE = os.path.join(RUNTIME, "voxos-panel.pid")
 CSS = os.path.join(HOME, ".config/voxos/current/panel.css")
+SCALE_FILE = os.path.join(HOME, ".config/voxos/scale")   # czyta go hosts/<host>/hypr-host.lua
 AIRPLANE = os.path.join(HOME, ".local/state/voxos/airplane")
 
 # Ikony (JetBrainsMono Nerd Font, Material Design)
@@ -30,7 +31,7 @@ I = {
     "mic": "󰍬", "mic_off": "󰍭", "coffee": "󰅶", "plane": "󰀝",
     "phone": "󰄜", "phone_off": "󰥐", "right": "󰅂", "left": "󰅁", "refresh": "󰑐",
     "check": "󰄬", "power": "󰐥", "shot": "󰹑", "palette": "󰏘",
-    "play": "󰐊", "pause": "󰏤", "next": "󰒭", "prev": "󰒮", "cog": "󰒓",
+    "play": "󰐊", "pause": "󰏤", "next": "󰒭", "prev": "󰒮", "cog": "󰒓", "monitor": "󰍹",
 }
 # Ikony urządzeń Bluetooth wg pola "Icon" z `bluetoothctl info`
 BT_ICONS = {
@@ -135,6 +136,23 @@ def bt_devices():
                        "icon": BT_ICONS.get(icon, I["bt"]), "battery": battery})
     result.sort(key=lambda d: (not d["connected"], not d["paired"], d["name"].lower()))
     return result
+
+
+def monitor_scales():
+    """Skale, które Hyprland przyjmie bez poprawiania: n/120, przy których obraz ma całe piksele."""
+    try:
+        mons = json.loads(out(["hyprctl", "monitors", "-j"]) or "[]")
+    except ValueError:
+        return None
+    if not mons:
+        return None
+    mon = next((m for m in mons if m.get("focused")), mons[0])
+    w, h, cur = int(mon.get("width", 0)), int(mon.get("height", 0)), float(mon.get("scale", 1))
+    if w <= 0 or h <= 0:
+        return None
+    top = max(1.0, min(3.0, w / 1024))          # nie mniej niż ~1024 px szerokości obrazu
+    scales = [n / 120 for n in range(120, int(top * 120) + 1) if (w * 120) % n == 0 and (h * 120) % n == 0]
+    return {"scales": scales or [1.0], "current": cur}
 
 
 # --- Odczyt stanu systemu (w osobnym wątku) --------------------------------------
@@ -287,6 +305,8 @@ def main_gui():
             self.wifi_target = None
             self.bt_scan_proc = None
             self.bt_busy = False
+            self.scales = []
+            self.scale_timer = None
 
             self.win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
             self.win.set_name("voxos-panel-window")
@@ -348,10 +368,12 @@ def main_gui():
             self.win.show_all()
             self.pass_row.hide()
             self.bt_on_row.hide()
+            self.scale_row.hide()
             self.media.hide()
             self.stack.set_visible_child_name("main")
 
             threading.Thread(target=self.poll_loop, daemon=True).start()
+            threading.Thread(target=lambda: GLib.idle_add(self.setup_scale, monitor_scales()), daemon=True).start()
 
         # --- budowa widoków ---------------------------------------------------------
         def build_main(self):
@@ -362,7 +384,6 @@ def main_gui():
             head.pack_start(self.bat_label, True, True, 0)
             head.pack_start(button(I["shot"], "round", self.act_screenshot, "Zrzut ekranu"), False, False, 0)
             head.pack_start(button(I["palette"], "round", lambda: self.close_then(script("voxos-theme")), "Motyw"), False, False, 0)
-            head.pack_start(button(I["lock"], "round", lambda: self.close_then(["hyprlock"]), "Zablokuj"), False, False, 0)
             head.pack_start(button(I["power"], "round power", lambda: self.close_then(script("voxos-power")), "Zasilanie"), False, False, 0)
             page.pack_start(head, False, False, 0)
 
@@ -380,6 +401,23 @@ def main_gui():
             self.bright_row.pack_start(label(I["bright"], "slider-icon-static icon"), False, False, 0)
             self.bright_row.pack_start(self.bright_scale, True, True, 0)
             page.pack_start(self.bright_row, False, False, 0)
+
+            # Skala interfejsu (zapis do ~/.config/voxos/scale + przeładowanie Hyprlanda)
+            self.scale_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            self.ui_scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL,
+                                      adjustment=Gtk.Adjustment(value=0, lower=0, upper=1, step_increment=1,
+                                                                page_increment=1, page_size=0))
+            self.ui_scale.set_draw_value(False)
+            self.ui_scale.set_round_digits(0)
+            self.ui_scale.set_hexpand(True)
+            self.ui_scale.set_valign(Gtk.Align.CENTER)
+            self.ui_scale.connect("value-changed", lambda w: self.on_ui_scale(w.get_value()))
+            self.scale_label = label("", "scale-value", xalign=1)
+            self.scale_row.pack_start(label(I["monitor"], "slider-icon-static icon"), False, False, 0)
+            self.scale_row.pack_start(self.ui_scale, True, True, 0)
+            self.scale_row.pack_start(self.scale_label, False, False, 0)
+            self.scale_row.set_tooltip_text("Skala interfejsu (zmienia się po puszczeniu suwaka)")
+            page.pack_start(self.scale_row, False, False, 0)
 
             # Kafelki
             grid = Gtk.Grid()
@@ -696,6 +734,45 @@ def main_gui():
                 n = self.wifi_target
                 if n and n["secure"]:
                     self.ask_password(ssid)   # np. złe lub zmienione hasło
+            return False
+
+        # --- Skala interfejsu -----------------------------------------------------------
+        def setup_scale(self, info):
+            if not info or len(info["scales"]) < 2:
+                return False   # np. ekran 1366x768: jedyna czysta skala to 100%
+            self.scales = info["scales"]
+            idx = min(range(len(self.scales)), key=lambda i: abs(self.scales[i] - info["current"]))
+            self.updating = True
+            try:
+                self.ui_scale.set_range(0, len(self.scales) - 1)
+                self.ui_scale.set_increments(1, 1)
+                self.ui_scale.set_value(idx)
+            finally:
+                self.updating = False
+            self.scale_label.set_text(f"{round(self.scales[idx] * 100)}%")
+            self.scale_row.show_all()
+            return False
+
+        def on_ui_scale(self, value):
+            if self.updating or not self.scales:
+                return
+            idx = max(0, min(len(self.scales) - 1, int(round(value))))
+            self.scale_label.set_text(f"{round(self.scales[idx] * 100)}%")
+            if self.scale_timer:
+                GLib.source_remove(self.scale_timer)
+            # zastosuj dopiero, gdy suwak przez chwilę stoi (przeładowanie Hyprlanda trwa moment)
+            self.scale_timer = GLib.timeout_add(900, self.apply_ui_scale, idx)
+
+        def apply_ui_scale(self, idx):
+            self.scale_timer = None
+            value = f"{self.scales[idx]:.4f}".rstrip("0").rstrip(".")
+            try:
+                os.makedirs(os.path.dirname(SCALE_FILE), exist_ok=True)
+                with open(SCALE_FILE, "w") as f:
+                    f.write(value + "\n")
+            except OSError:
+                return False
+            threading.Thread(target=lambda: run(["hyprctl", "reload"], timeout=10), daemon=True).start()
             return False
 
         # --- Bluetooth -----------------------------------------------------------------

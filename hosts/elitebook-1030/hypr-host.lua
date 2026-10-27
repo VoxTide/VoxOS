@@ -1,11 +1,23 @@
 -- Ustawienia Hyprlanda tylko dla EliteBooka 1030 G1
 
--- Wbudowany ekran: najlepsza rozdzielczość, skalowanie dobierane automatycznie
+-- Skala interfejsu: suwak w panelu szybkich ustawień (voxos-panel) zapisuje ją w ~/.config/voxos/scale.
+-- Brak pliku = Hyprland dobiera skalę sam.
+local scale = "auto"
+local f = io.open((os.getenv("HOME") or "") .. "/.config/voxos/scale", "r")
+if f then
+    local v = f:read("l")
+    f:close()
+    if v and tonumber(v) then
+        scale = v
+    end
+end
+
+-- Wbudowany ekran: najlepsza rozdzielczość
 hl.monitor({
     output   = "",
     mode     = "preferred",
     position = "auto",
-    scale    = "auto",
+    scale    = scale,
 })
 
 -- Touchpad
