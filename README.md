@@ -57,6 +57,7 @@ dotfiles/           konfiguracja linkowana do ~ przez GNU Stow
 | `Super + Shift + 1-9` | przenieś okno na pulpit |
 | `Print` | zrzut zaznaczenia do schowka |
 | `Shift + Print` | zrzut ekranu do Obrazy/Zrzuty |
+| `Super + Escape` | menu zasilania (blokada, wyloguj, uśpij, restart, wyłącz) |
 | `Super + Shift + E` | wyloguj |
 
 ## Dodanie nowego hosta

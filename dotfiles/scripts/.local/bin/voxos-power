@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# VoxOS - menu zasilania (rofi). Esc zamyka menu bez wyboru.
+choice=$(printf '%s\n' \
+    "Zablokuj" \
+    "Wyloguj" \
+    "Uśpij" \
+    "Uruchom ponownie" \
+    "Wyłącz" | rofi -dmenu -i -no-custom -p "Zasilanie")
+
+case "$choice" in
+    "Zablokuj")         loginctl lock-session ;;
+    "Wyloguj")          hyprctl dispatch exit ;;
+    "Uśpij")            systemctl suspend ;;
+    "Uruchom ponownie") systemctl reboot ;;
+    "Wyłącz")           systemctl poweroff ;;
+esac
