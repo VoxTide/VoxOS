@@ -232,17 +232,18 @@ if [[ $AUTOLOGIN == true && -x /usr/bin/greetd && -n $session_cmd ]]; then
     info "Logowanie: greetd uruchamia Hyprlanda od razu, hasło na ekranie blokady motywu"
     sudo mkdir -p /etc/greetd /etc/voxos
     # initial_session = start komputera, default_session = po wylogowaniu (znów prosto do blokady)
+    # Wyjście Hyprlanda idzie do /dev/null, żeby jego powitanie nie mignęło na ekranie (log i tak jest w $XDG_RUNTIME_DIR/hypr)
     sudo tee /etc/greetd/config.toml >/dev/null <<GREETD
 # VoxOS - logowanie przez greetd (wygenerowane przez install.sh, zmiany rób w repo)
 [terminal]
 vt = 1
 
 [initial_session]
-command = "$session_cmd"
+command = "$session_cmd >/dev/null 2>&1"
 user = "$USER"
 
 [default_session]
-command = "$session_cmd"
+command = "$session_cmd >/dev/null 2>&1"
 user = "$USER"
 GREETD
     sudo touch "$AUTOLOGIN_MARK"
