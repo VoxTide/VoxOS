@@ -6,6 +6,9 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES="$(realpath "$REPO_DIR/dotfiles")"
+# --quick: tylko dotfiles, motyw i wygląd, bez pakietów i usług (używa voxos-update)
+QUICK=false
+if [[ ${1:-} == --quick ]]; then QUICK=true; shift; fi
 HOST="${1:-$(cat /etc/hostname)}"
 HOST_DIR="$REPO_DIR/hosts/$HOST"
 
@@ -63,6 +66,8 @@ source "$HOST_DIR/host.conf"
 
 info "Profil hosta: $HOST"
 
+if [[ $QUICK == false ]]; then   # >>> pakiety (pomijane w trybie --quick)
+
 # --- Repozytorium multilib (potrzebne np. dla Steam) --------------------------
 if [[ $ENABLE_MULTILIB == true ]] && grep -q '^#\[multilib\]' /etc/pacman.conf; then
     info "Włączam repozytorium multilib"
@@ -115,6 +120,8 @@ if [[ $SNAPPER == true ]]; then
     fi
 fi
 
+fi   # <<< koniec sekcji pakietów
+
 # --- Dotfiles -----------------------------------------------------------------
 cleanup_dead_links
 
@@ -155,6 +162,11 @@ fi
 
 # Foldery domowe (Obrazy, Pobrane itd.) w języku systemu
 xdg-user-dirs-update
+
+if [[ $QUICK == true ]]; then
+    info "Gotowe (tryb szybki: bez pakietów i usług)"
+    exit 0
+fi
 
 # --- Usługi systemowe -----------------------------------------------------------
 info "Włączam usługi"

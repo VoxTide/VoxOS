@@ -81,6 +81,19 @@ themes/<motyw>/     wygląd: hypr.lua, waybar, rofi, mako, kitty, hyprlock, tape
 | `Super + T` | wybór motywu |
 | `Super + Shift + E` | wyloguj |
 
+## Aktualizacja z pliku zip
+
+Nową wersję repo w pliku `voxos.zip` (np. od Claude) wgrywa jedna komenda na laptopie:
+
+```bash
+voxos-update                      # najnowszy voxos*.zip z folderu Pobrane
+voxos-update -m "opis zmian"      # opis commita od razu
+```
+
+Skrypt sprawdza, czy repo jest czyste i czy zip to na pewno VoxOS, pobiera najpierw zmiany z GitHuba, podmienia pliki (oprócz `.git`), pokazuje listę zmian, robi commit i `git push`, a potem uruchamia `install.sh --quick` (dotfiles i motyw, bez pakietów). Pełną instalację z pakietami wybierasz w pytaniu na końcu.
+
+Jednorazowo przed pierwszym użyciem: `gh auth login` oraz `git config --global user.name` / `user.email`.
+
 ## Migawki (snapper + snap-pac)
 
 Każda instalacja, usunięcie i aktualizacja pakietów (`pacman`, `yay`, alias `up`) robi dwie migawki: **pre** (przed) i **post** (po).

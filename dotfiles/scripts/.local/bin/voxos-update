@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# VoxOS - wgrywa nową wersję repo z pliku zip, robi commit i wypycha na GitHuba
+# Użycie:
+#   voxos-update                          bierze najnowszy voxos*.zip z folderu Pobrane
+#   voxos-update ~/Pobrane/voxos.zip      konkretny plik
+#   voxos-update -m "opis zmian"          opis commita bez pytania
+set -euo pipefail
+
+info() { printf '\e[1;36m==> %s\e[0m\n' "$*"; }
+warn() { printf '\e[1;33m!! %s\e[0m\n' "$*"; }
+die()  { printf '\e[1;31m!! %s\e[0m\n' "$*" >&2; exit 1; }
+
+REPO="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../../.." && pwd)"
+
+msg=""
+zip=""
+while (( $# )); do
+    case "$1" in
+        -m) msg="${2:-}"; shift 2 ;;
+        *)  zip="$1"; shift ;;
+    esac
+done
+
+# --- Zabezpieczenia: działamy tylko na prawdziwym repo VoxOS ---------------------
+[[ -d $REPO/.git && -f $REPO/install.sh && -d $REPO/themes ]] || die "To nie wygląda na repo VoxOS: $REPO"
+[[ $REPO != "$HOME" && $REPO != "/" ]] || die "Niebezpieczna ścieżka repo: $REPO"
+
+if [[ -z $zip ]]; then
+    downloads="$(xdg-user-dir DOWNLOAD 2>/dev/null || echo "$HOME/Pobrane")"
+    zip="$(ls -t "$downloads"/voxos*.zip 2>/dev/null | head -1 || true)"
+    [[ -n $zip ]] || die "Nie znalazłem voxos*.zip w $downloads. Podaj ścieżkę: voxos-update <plik.zip>"
+fi
+[[ -f $zip ]] || die "Nie ma pliku: $zip"
+info "Plik: $zip"
+
+cd "$REPO"
+if [[ -n $(git status --porcelain) ]]; then
+    git status --short
+    die "W repo są niezapisane zmiany (lista wyżej). Zrób commit albo 'git stash', potem uruchom ponownie."
+fi
+
+info "Pobieram najnowszą wersję z GitHuba"
+git pull --ff-only
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+bsdtar -xf "$zip" -C "$tmp"
+src="$tmp/voxos"
+[[ -f $src/install.sh && -d $src/themes ]] || die "Zip nie zawiera repo VoxOS (brak voxos/install.sh) - nic nie zmieniam"
+
+# --- Podmiana plików: wszystko oprócz .git ------------------------------------
+find "$REPO" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+cp -a "$src"/. "$REPO"/
+
+git add -A
+if git diff --cached --quiet; then
+    info "Zip jest identyczny z repo - nic do zrobienia"
+    exit 0
+fi
+
+info "Zmiany:"
+git diff --cached --stat
+
+if [[ -z $msg ]]; then
+    read -rp "Opis zmian (Enter = 'Aktualizacja VoxOS'): " msg
+fi
+git commit -q -m "${msg:-Aktualizacja VoxOS}"
+info "Wypycham na GitHuba"
+git push
+
+# --- Zastosowanie w działającym systemie --------------------------------------
+read -rp "Pełna instalacja z pakietami i usługami? Zwykle niepotrzebna [t/N] " ans
+if [[ $ans == [tTyY]* ]]; then
+    bash "$REPO/install.sh"
+else
+    bash "$REPO/install.sh" --quick
+fi
+info "Gotowe"
