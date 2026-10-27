@@ -56,6 +56,7 @@ AUR_GROUPS=()
 SERVICES=()
 MASK_SERVICES=()
 ENABLE_MULTILIB=false
+SNAPPER=false
 # shellcheck source=/dev/null
 source "$HOST_DIR/host.conf"
 
@@ -100,6 +101,17 @@ if (( ${#aur_pkgs[@]} > 0 )); then
     fi
     info "Instaluję ${#aur_pkgs[@]} pakietów z AUR"
     yay -S --needed "${aur_pkgs[@]}"
+fi
+
+# --- Migawki przy aktualizacjach (snapper + snap-pac) ------------------------------
+if [[ $SNAPPER == true ]]; then
+    if sudo snapper list-configs 2>/dev/null | grep -qw root; then
+        info "Włączam migawki przy każdej instalacji i aktualizacji (snap-pac)"
+        sudo pacman -S --needed snap-pac
+        sudo systemctl enable --now snapper-cleanup.timer
+    else
+        warn "Brak konfiguracji snappera 'root' - pomijam snap-pac (sprawdź: sudo snapper list-configs)"
+    fi
 fi
 
 # --- Dotfiles -----------------------------------------------------------------

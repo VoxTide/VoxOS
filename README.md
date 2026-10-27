@@ -60,6 +60,19 @@ dotfiles/           konfiguracja linkowana do ~ przez GNU Stow
 | `Super + Escape` | menu zasilania (blokada, wyloguj, uśpij, restart, wyłącz) |
 | `Super + Shift + E` | wyloguj |
 
+## Migawki (snapper + snap-pac)
+
+Każda instalacja, usunięcie i aktualizacja pakietów (`pacman`, `yay`, alias `up`) robi dwie migawki: **pre** (przed) i **post** (po).
+
+```bash
+snaps                                   # lista migawek, np. 41 pre / 42 post
+sudo snapper -c root status 41..42      # co zmieniła aktualizacja
+sudo snapper -c root undochange 41..42  # cofnij zmiany z tej aktualizacji
+sudo reboot
+```
+
+Stare migawki usuwa automatycznie `snapper-cleanup.timer`.
+
 ## Dodanie nowego hosta
 
 Skopiuj `hosts/elitebook-1030` pod nową nazwą i zmień w nim sterowniki, usługi i monitory.
