@@ -154,3 +154,12 @@
 
 tooltip { background-color: #2E3440; border: 1px solid #4C566A; border-radius: 12px; }
 tooltip label { color: #ECEFF4; }
+
+/* Historia powiadomień */
+#panel .section-title { font-weight: bold; font-size: 12px; color: #ECEFF4; }
+#panel button.small { background-color: #3B4252; border-radius: 8px; padding: 4px 12px; }
+#panel button.small:hover { background-color: #434C5E; }
+#panel .small-text { font-size: 10px; color: #D8DEE9; }
+#panel .notif { background-color: #3B4252; border-radius: 10px; padding: 10px 14px; }
+#panel .notif-title { font-weight: bold; font-size: 11px; color: #ECEFF4; }
+#panel .notif-body { font-size: 10px; color: #D8DEE9; }

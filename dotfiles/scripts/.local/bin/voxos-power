@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 # VoxOS - menu zasilania (rofi, bez pola szukania). Strzałki/Enter albo mysz, Esc zamyka bez wyboru.
-choice=$(printf '%s\n' \
-    "󰌾  Zablokuj" \
-    "󰍃  Wyloguj" \
-    "󰒲  Uśpij" \
-    "󰜉  Uruchom ponownie" \
-    "󰐥  Wyłącz" | rofi -dmenu -i -no-custom -p "󰐥" \
-        -theme-str 'window { width: 320px; } mainbox { children: [ listview ]; } listview { lines: 5; }')
+options=("󰌾  Zablokuj" "󰍃  Wyloguj" "󰒲  Uśpij")
+[[ -f /etc/voxos/hibernate ]] && options+=("󰋊  Hibernuj")
+options+=("󰜉  Uruchom ponownie" "󰐥  Wyłącz")
+choice=$(printf '%s\n' "${options[@]}" | rofi -dmenu -i -no-custom -p "󰐥" \
+        -theme-str "window { width: 320px; } mainbox { children: [ listview ]; } listview { lines: ${#options[@]}; }")
 
 case "$choice" in
     *Zablokuj)         loginctl lock-session ;;
     *Wyloguj)          hyprctl dispatch 'hl.dsp.exit()' ;;
-    *Uśpij)            systemctl suspend ;;
+    *Uśpij)            bash ~/.local/bin/voxos-suspend ;;
+    *Hibernuj)         systemctl hibernate ;;
     *"Uruchom ponownie") systemctl reboot ;;
     *Wyłącz)           systemctl poweroff ;;
 esac

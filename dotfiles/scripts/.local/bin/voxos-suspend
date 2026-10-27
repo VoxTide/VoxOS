@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# VoxOS - uśpienie. Przy włączonej hibernacji (install.sh, HIBERNATE=true) po 2 h uśpienia
+# laptop sam przechodzi w hibernację, więc bateria nie rozładuje się do zera.
+if [[ -f /etc/voxos/hibernate ]]; then
+    systemctl suspend-then-hibernate || systemctl suspend
+else
+    systemctl suspend
+fi

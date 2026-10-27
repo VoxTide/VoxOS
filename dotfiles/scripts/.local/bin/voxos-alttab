@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# VoxOS - przełącznik okien jak w Windowsie (Alt + Tab).
+# Lista od ostatnio używanych, zaznaczone jest poprzednie okno. Trzymając Alt, Tab przechodzi dalej,
+# Shift + Tab wraca, puszczenie Alt przełącza. Działa też Enter, klik albo Esc (anuluj).
+# Zminimalizowane okna też są na liście - wybranie przywraca je na bieżący pulpit.
+set -u
+MIN="special:minimized"
+
+mapfile -t rows < <(hyprctl clients -j 2>/dev/null | jq -r --arg min "$MIN" '
+    map(select(.mapped) | select((.workspace.name | startswith("special:") | not) or .workspace.name == $min))
+    | sort_by(.focusHistoryID)[]
+    | [.address, .class, (.title | gsub("[\t\n]"; " ")), .workspace.name] | @tsv')
+(( ${#rows[@]} > 0 )) || exit 0
+
+menu=""
+for r in "${rows[@]}"; do
+    IFS=$'\t' read -r _ cls title ws <<<"$r"
+    if [[ $ws == "$MIN" ]]; then where="zminimalizowane"; else where="pulpit ${ws}"; fi
+    icon="${cls,,}"
+    menu+="${title:-$cls}  ·  ${where}"$'\0icon\x1f'"${icon}"$'\n'
+done
+
+sel=1
+(( ${#rows[@]} == 1 )) && sel=0
+idx=$(printf '%s' "$menu" | rofi -dmenu -i -no-custom -format i -show-icons -selected-row "$sel" -p "󰖯" \
+    -kb-accept-entry '!Alt+Alt_L,Return,KP_Enter' \
+    -kb-row-down 'Alt+Tab,Down,Control+n' \
+    -kb-row-up 'Alt+ISO_Left_Tab,Up,Control+p' \
+    -kb-cancel 'Escape,Alt+Escape' \
+    -theme-str 'window { width: 620px; } mainbox { children: [ listview ]; } listview { lines: 8; } element-icon { size: 24px; }') || exit 0
+[[ $idx =~ ^[0-9]+$ ]] || exit 0
+
+IFS=$'\t' read -r addr _ _ ws <<<"${rows[idx]}"
+if [[ $ws == "$MIN" ]]; then
+    cur=$(hyprctl activeworkspace -j 2>/dev/null | jq -r '.id')
+    hyprctl dispatch "hl.dsp.window.move({ workspace = ${cur:-1}, window = \"address:$addr\" })" >/dev/null
+    pkill -RTMIN+9 waybar 2>/dev/null
+fi
+hyprctl dispatch "hl.dsp.focus({ window = \"address:$addr\" })" >/dev/null

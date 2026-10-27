@@ -96,3 +96,19 @@ element-text {
     text-color: inherit;
     cursor: inherit;
 }
+
+/* Zakładki launchera (APLIKACJE / KALKULATOR / PLIKI), przełączanie: Ctrl + Tab albo klik */
+mode-switcher {
+    spacing: 8px;
+}
+button {
+    padding: 7px 12px;
+    border-radius: 8px;
+    background-color: @nord1;
+    text-color: @nord3;
+    cursor: pointer;
+}
+button selected {
+    background-color: @nord2;
+    text-color: @nord8;
+}

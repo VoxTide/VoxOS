@@ -54,7 +54,7 @@ Istniejące pliki konfiguracyjne nie zostaną nadpisane bez śladu: skrypt robi 
 
 ```
 install.sh          główny skrypt
-packages/           listy pakietów (base, dev, aur-dev)
+packages/           listy pakietów (base, dev, apps, shell, print, aur-*)
 hosts/<host>/
   host.conf         grupy pakietów, usługi
   packages.txt      sterowniki i pakiety tylko dla tego sprzętu
@@ -69,7 +69,11 @@ boot/splash.bmp     logo VoxOS przy starcie
 | Skrót | Akcja |
 |-------|-------|
 | `Super + Enter` | terminal |
-| `Super + D` | launcher aplikacji |
+| `Super + Shift + Enter` | wysuwany terminal (pokaż / schowaj) |
+| `Super + D` | launcher: APLIKACJE / KALKULATOR / PLIKI (`Ctrl + Tab` przełącza) |
+| `Super + K` | kalkulator (np. `15% z 240`, `5 km w mi`; Enter kopiuje wynik) |
+| `Super + Shift + F` | szukanie plików w katalogu domowym |
+| `Alt + Tab` | przełącznik okien (od ostatnio używanych; puść Alt, aby przełączyć) |
 | `Super + E` | menedżer plików |
 | `Super + Q` albo X przy tytule okna na pasku | zamknij okno |
 | `Super + F` | pełny ekran |
@@ -86,7 +90,9 @@ boot/splash.bmp     logo VoxOS przy starcie
 | `Super + Shift + 1-9` | przenieś okno na pulpit |
 | `Super + Tab` | poprzedni pulpit |
 | 3 palce w bok (touchpad) | zmiana pulpitu |
-| `Print` / `Shift + Print` | zrzut zaznaczenia / całego ekranu: plik w Obrazy/Zrzuty + schowek + powiadomienie |
+| `Print` / `Shift + Print` | zrzut zaznaczenia / całego ekranu: plik w Obrazy/Zrzuty + schowek + powiadomienie (klik w nie = edycja w satty) |
+| `Ctrl + Print` | zrzut zaznaczenia od razu do edycji (strzałki, tekst, zamazywanie) |
+| `Super + Shift + T` | tekst z ekranu do schowka (OCR, polski + angielski) |
 | `Super + N` | schowaj powiadomienia |
 | `Super + Shift + N` | przywróć ostatnie powiadomienie |
 | `Super + Shift + R` | nagrywanie ekranu start/stop (Wideo/Nagrania) |
@@ -103,6 +109,10 @@ boot/splash.bmp     logo VoxOS przy starcie
 - **Logowanie**: przy `AUTOLOGIN=true` w `host.conf` **greetd** uruchamia Hyprlanda od razu po starcie (bez serwera X, kilka sekund szybciej niż SDDM), a ekran blokady motywu (ten sam co `Super + L`) pełni rolę ekranu logowania, więc hasło jest wymagane (`voxos-session-lock`, log w `$XDG_RUNTIME_DIR/voxos-session-lock.log`). Wylogowanie wraca do tego samego ekranu blokady. `AUTOLOGIN=false` + `bash install.sh` przywraca klasyczny ekran SDDM. Awaryjnie: `Ctrl + Alt + F2`, zaloguj się i `sudo systemctl disable greetd && sudo systemctl enable sddm && sudo reboot`.
 - **Cichy start**: przy `QUIET_BOOT=true` nie widać menu startowego ani przewijających się komunikatów, a zamiast logo Archa pojawia się logo VoxOS (`boot/splash.bmp`). Działa ze zwykłymi wpisami systemd-boot i z UKI (`/etc/kernel/cmdline` + preset mkinitcpio). Menu systemd-boot pokażesz, **przytrzymując Spację** zaraz po logo HP.
 - **Pasek, prawa strona**: jedna pigułka z ikonami Wi-Fi, Bluetooth, głośności i baterii. Klik (albo `Super + S`) otwiera **panel szybkich ustawień** (`voxos-panel`): bateria z czasem, zrzut ekranu, motyw, zasilanie (też blokada), suwaki głośności, jasności i **skali interfejsu** (zapis w `~/.config/voxos/scale`, Hyprland przeładowuje się po puszczeniu suwaka), kafelki Wi-Fi (strzałka: lista sieci z hasłem), Bluetooth (strzałka: lista urządzeń z baterią, łączenie, parowanie nowych), nocne światło, nie przeszkadzać, mikrofon, bez usypiania, tryb samolotowy, telefon (KDE Connect) i odtwarzacz muzyki. Zamykanie: klik obok, `Esc` albo ponowny klik w pasek. Klik w baterię na pasku pokazuje procent i czas do rozładowania / do pełna. Kółko na głośności zmienia głośność, prawy klik wycisza. Licznik aktualizacji pojawia się tylko, gdy są nowe pakiety.
+- **Powiadomienia**: ostatnie 4 na dole panelu szybkich ustawień (przycisk Wyczyść). Okienka głośności i jasności nie trafiają do historii.
+- **Bateria**: na baterii ekran przyciemnia się po 1,5 min bezczynności (na zasilaczu po 4 min), ruch myszą przywraca jasność. Firefox i mpv dekodują wideo sprzętowo (VA-API, sprawdzenie: `vainfo`). Stare wersje pakietów sprząta co tydzień `paccache.timer`.
+- **Usypianie i hibernacja** (`HIBERNATE=true` w `host.conf`): plik wymiany wielkości RAM w podwoluminie btrfs `@swap` (poza migawkami). Zamknięcie klapki na baterii usypia, a po 2 h uśpienia laptop przechodzi w hibernację. Na zasilaczu klapka zwykle usypia. W menu zasilania jest też **Hibernuj**. Ekran blokuje się przed każdym uśpieniem.
+- **Drukarki i skanery**: CUPS z automatycznym wykrywaniem drukarek w sieci (avahi, IPP Everywhere / AirPrint, bez sterowników producenta), drukarka „PDF”, ustawienia: *Drukarki* (system-config-printer), skanowanie: *Skaner dokumentów* (simple-scan, sane-airscan).
 - **Launcher i menu** (aplikacje, zasilanie, motywy, schowek, panel) zamykają się kliknięciem obok okna albo `Esc`.
 - **OSD**: przy zmianie głośności i jasności pojawia się okienko z paskiem (`voxos-osd`).
 - **Bateria**: ostrzeżenie przy 20% i alarm przy 10% (`voxos-battery`, timer systemd co 2 minuty).

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# VoxOS - przyciemnianie ekranu przy bezczynności (wywołuje hypridle)
+#   voxos-dim battery   przyciemnij, tylko gdy laptop jest na baterii
+#   voxos-dim always    przyciemnij zawsze (jeśli jeszcze nie)
+#   voxos-dim restore   przywróć jasność sprzed przyciemnienia
+set -u
+FLAG="${XDG_RUNTIME_DIR:-/tmp}/voxos-dim"
+LEVEL=15   # procent jasności po przyciemnieniu
+
+on_battery() {
+    local ac
+    for ac in /sys/class/power_supply/*; do
+        [[ $(cat "$ac/type" 2>/dev/null) == Mains ]] || continue
+        [[ $(cat "$ac/online" 2>/dev/null) == 1 ]] && return 1
+    done
+    return 0
+}
+
+dim() {
+    [[ -f $FLAG ]] && return 0
+    local now
+    now=$(brightnessctl -m 2>/dev/null | cut -d, -f4 | tr -d '%')
+    [[ $now =~ ^[0-9]+$ ]] || return 0
+    (( now > LEVEL )) || return 0
+    echo "$now" > "$FLAG"
+    brightnessctl -q set "${LEVEL}%"
+}
+
+case "${1:-}" in
+    battery) on_battery && dim ;;
+    always)  dim ;;
+    restore)
+        if [[ -f $FLAG ]]; then
+            brightnessctl -q set "$(cat "$FLAG")%"
+            rm -f "$FLAG"
+        fi ;;
+    *) echo "Użycie: voxos-dim battery|always|restore" >&2; exit 1 ;;
+esac

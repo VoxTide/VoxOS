@@ -33,3 +33,6 @@ hl.config({
 -- Klawisze jasności z okienkiem OSD (z powtarzaniem, działają też na zablokowanym ekranie)
 hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("bash ~/.local/bin/voxos-osd brightness up"),   { locked = true, repeating = true })
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-osd brightness down"), { locked = true, repeating = true })
+
+-- Sprzętowe dekodowanie wideo na Intel HD 515 (Firefox, mpv): sterownik iHD z intel-media-driver
+hl.env("LIBVA_DRIVER_NAME", "iHD")

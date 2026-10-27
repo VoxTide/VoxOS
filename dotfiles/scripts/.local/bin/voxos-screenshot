@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# VoxOS - zrzut ekranu: zapis do Obrazy/Zrzuty, kopia do schowka, powiadomienie z podglądem
-# Użycie: voxos-screenshot area | full
+# VoxOS - zrzut ekranu: zapis do Obrazy/Zrzuty, kopia do schowka, powiadomienie z podglądem.
+# Klik w powiadomienie otwiera edycję (satty: strzałki, tekst, zamazywanie; Enter/Ctrl+S zapisuje).
+# Użycie: voxos-screenshot area | full | edit   (edit = zaznaczenie od razu do edycji)
 set -u
 dir="$(xdg-user-dir PICTURES 2>/dev/null || echo "$HOME/Obrazy")/Zrzuty"
 mkdir -p "$dir"
@@ -8,13 +9,30 @@ file="$dir/$(date +%F_%H-%M-%S).png"
 n=2
 while [[ -e $file ]]; do file="$dir/$(date +%F_%H-%M-%S)_$n.png"; n=$((n + 1)); done
 
-case "${1:-area}" in
-    area) geom="$(slurp)" || exit 0          # Esc przy zaznaczaniu = anuluj
-          grim -g "$geom" "$file" ;;
-    full) grim "$file" ;;
-    *)    echo "Użycie: voxos-screenshot area|full" >&2; exit 1 ;;
+edit() {
+    command -v satty >/dev/null || { notify-send -a VoxOS "Brak programu satty" "Zainstaluj: sudo pacman -S satty"; return; }
+    satty --filename "$file" --output-filename "$file" --copy-command wl-copy --early-exit
+}
+
+mode="${1:-area}"
+case "$mode" in
+    area|edit) geom="$(slurp)" || exit 0          # Esc przy zaznaczaniu = anuluj
+               grim -g "$geom" "$file" ;;
+    full)      grim "$file" ;;
+    *)         echo "Użycie: voxos-screenshot area|full|edit" >&2; exit 1 ;;
 esac
 
 [[ -f $file ]] || exit 1
 wl-copy < "$file"
-notify-send -a voxos-screenshot -i "$file" "Zrzut ekranu" "Skopiowano do schowka"$'\n'"$(basename "$file")"
+if [[ $mode == edit ]]; then
+    edit
+    exit 0
+fi
+
+# Powiadomienie czeka w tle na klik (akcja "default" w mako = lewy przycisk myszy)
+(
+    action=$(notify-send -a voxos-screenshot -i "$file" -A "default=Edytuj" \
+        "Zrzut ekranu" "Skopiowano do schowka · kliknij, aby edytować"$'\n'"$(basename "$file")" 2>/dev/null)
+    [[ $action == default ]] && edit
+) >/dev/null 2>&1 &
+disown

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# VoxOS - wysuwany terminal (Super + Shift + Enter): pokaż / schowaj.
+# Terminal żyje na ukrytym pulpicie special:dropdown, więc po schowaniu nic się w nim nie zamyka.
+set -u
+CLASS="voxos-dropdown"
+
+running() { hyprctl clients -j 2>/dev/null | jq -e --arg c "$CLASS" 'any(.[]; .class == $c)' >/dev/null; }
+shown() { hyprctl monitors -j 2>/dev/null | jq -e 'any(.[]; .focused and .specialWorkspace.name == "special:dropdown")' >/dev/null; }
+toggle() { hyprctl dispatch 'hl.dsp.workspace.toggle_special("dropdown")' >/dev/null; }
+
+if running; then
+    toggle
+    exit 0
+fi
+
+# Pierwsze użycie: uruchom terminal (reguła okna w hyprland.lua odkłada go na special:dropdown)
+setsid -f kitty --class "$CLASS" >/dev/null 2>&1
+for _ in $(seq 30); do
+    running && break
+    sleep 0.1
+done
+shown || toggle

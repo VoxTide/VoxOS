@@ -24,7 +24,7 @@
     "custom/arch": {
         "format": "",
         "tooltip": false,
-        "on-click": "rofi -show drun"
+        "on-click": "bash ~/.local/bin/voxos-launcher"
     },
     "hyprland/workspaces": {
         "format": "{id}",

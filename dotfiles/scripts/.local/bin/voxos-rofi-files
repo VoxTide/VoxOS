@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# VoxOS - szukanie plików w launcherze (tryb "PLIKI" w rofi, też Super + Shift + F).
+# Bez argumentu wypisuje pliki z katalogu domowego, z argumentem otwiera wybrany plik.
+set -u
+if [[ -n ${ROFI_INFO:-} ]]; then
+    setsid -f xdg-open "$ROFI_INFO" >/dev/null 2>&1
+    exit 0
+fi
+
+printf '\0prompt\x1fPLIKI\n'
+printf '\0no-custom\x1ftrue\n'
+fd --type f --max-depth 7 --max-results 20000 \
+   --exclude node_modules --exclude build --exclude target --exclude .git \
+   --exclude development --exclude Android --exclude go --exclude __pycache__ \
+   . "$HOME" 2>/dev/null |
+awk -v home="$HOME" '
+{
+    path = $0; rel = substr(path, length(home) + 2)
+    n = split(path, parts, "."); ext = (n > 1) ? tolower(parts[n]) : ""
+    icon = "text-x-generic"
+    if (ext == "pdf") icon = "application-pdf"
+    else if (ext ~ /^(doc|docx|odt|rtf)$/) icon = "x-office-document"
+    else if (ext ~ /^(xls|xlsx|ods|csv)$/) icon = "x-office-spreadsheet"
+    else if (ext ~ /^(ppt|pptx|odp)$/) icon = "x-office-presentation"
+    else if (ext ~ /^(png|jpg|jpeg|gif|webp|svg|bmp|heic)$/) icon = "image-x-generic"
+    else if (ext ~ /^(mp4|mkv|webm|mov|avi)$/) icon = "video-x-generic"
+    else if (ext ~ /^(mp3|flac|ogg|wav|m4a|opus)$/) icon = "audio-x-generic"
+    else if (ext ~ /^(zip|tar|gz|xz|zst|7z|rar)$/) icon = "package-x-generic"
+    else if (ext ~ /^(py|dart|js|ts|sh|lua|html|css|java|kt|c|cpp|rs|go)$/) icon = "text-x-script"
+    printf "%s%cicon\037%s\037info\037%s\n", rel, 0, icon, path
+}'

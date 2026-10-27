@@ -63,6 +63,7 @@ SNAPPER=false
 THEME=dot
 AUTOLOGIN=false
 QUIET_BOOT=false
+HIBERNATE=false
 # shellcheck source=/dev/null
 source "$HOST_DIR/host.conf"
 
@@ -231,6 +232,16 @@ fi
 # Foldery domowe (Obrazy, Pobrane itd.) w języku systemu
 xdg-user-dirs-update
 
+# Firefox: sprzętowe dekodowanie wideo (VA-API) - mniej pracy procesora, dłuższa bateria.
+# Profil powstaje przy pierwszym uruchomieniu Firefoksa, więc po nim warto puścić voxos-update/install.sh jeszcze raz.
+for prof in "$HOME"/.mozilla/firefox/*.default* "$HOME"/.config/mozilla/firefox/*.default*; do
+    [[ -d $prof ]] || continue
+    for pref in 'user_pref("media.ffmpeg.vaapi.enabled", true);' \
+                'user_pref("media.hardware-video-decoding.force-enabled", true);'; do
+        grep -qxF "$pref" "$prof/user.js" 2>/dev/null || echo "$pref" >> "$prof/user.js"
+    done
+done
+
 if [[ $QUICK == true ]]; then
     info "Gotowe (tryb szybki: bez pakietów i usług)"
     exit 0
@@ -239,8 +250,18 @@ fi
 # --- Usługi systemowe -----------------------------------------------------------
 info "Włączam usługi"
 sudo systemctl enable NetworkManager.service
-if (( ${#SERVICES[@]} > 0 )); then
-    sudo systemctl enable "${SERVICES[@]}"
+for svc in "${SERVICES[@]}"; do
+    if systemctl list-unit-files "$svc" --no-legend 2>/dev/null | grep -q .; then
+        sudo systemctl enable --now "$svc" >/dev/null 2>&1 || warn "Nie udało się włączyć $svc"
+    else
+        warn "Pomijam $svc (brak takiej usługi - pakiet się nie zainstalował?)"
+    fi
+done
+
+# Drukarki w sieci: nazwy *.local przez avahi (nss-mdns), wpis przed "resolve"/"dns"
+if [[ -f /usr/lib/libnss_mdns_minimal.so.2 ]] && ! grep -q mdns_minimal /etc/nsswitch.conf; then
+    info "Drukarki: włączam wykrywanie urządzeń w sieci domowej (mDNS)"
+    sudo sed -i -E '/^hosts:/ s/(resolve|dns)/mdns_minimal [NOTFOUND=return] \1/' /etc/nsswitch.conf
 fi
 if (( ${#MASK_SERVICES[@]} > 0 )); then
     sudo systemctl mask "${MASK_SERVICES[@]}"
@@ -288,60 +309,124 @@ else
     sudo systemctl enable sddm.service
 fi
 
+# --- Parametry jądra (zwykłe wpisy systemd-boot oraz UKI: /etc/kernel/cmdline) -------
+ESP="$(bootctl --print-esp-path 2>/dev/null || echo /boot)"
+REBUILD_INITRAMFS=false
+
+# set_kernel_param nazwa[=wartość]: dopisuje parametr albo podmienia jego wartość
+set_kernel_param() {
+    local param="$1" name="${1%%=*}" entry
+    local has_name="(^|[[:space:]])${name}(=[^[:space:]]*)?([[:space:]]|$)"
+    local has_param="(^|[[:space:]])${param}([[:space:]]|$)"
+    while IFS= read -r entry; do
+        sudo grep -Eq "^options.*${has_param}" "$entry" && continue
+        if sudo grep -Eq "^options.*${has_name}" "$entry"; then
+            sudo sed -i -E "/^options /s#${has_name}#\1${param}\3#" "$entry"
+        else
+            sudo sed -i "/^options /s#\$# ${param}#" "$entry"
+        fi
+    done < <(sudo find "$ESP/loader/entries" -name '*.conf' 2>/dev/null)
+    if [[ -f /etc/kernel/cmdline ]] && ! grep -Eq "$has_param" /etc/kernel/cmdline; then
+        if grep -Eq "$has_name" /etc/kernel/cmdline; then
+            sudo sed -i -E "1s#${has_name}#\1${param}\3#" /etc/kernel/cmdline
+        else
+            sudo sed -i "1s#\$# ${param}#" /etc/kernel/cmdline
+        fi
+        REBUILD_INITRAMFS=true
+    fi
+}
+
 # --- Cichy start: bez menu, bez komunikatów, logo VoxOS zamiast logo Archa --------
-# Obsługuje oba układy systemd-boot: zwykłe wpisy (loader/entries) oraz UKI
-# (jądro w jednym pliku .efi, parametry w /etc/kernel/cmdline, logo w presecie mkinitcpio).
 if [[ $QUIET_BOOT == true ]] && command -v bootctl >/dev/null 2>&1; then
-    esp="$(bootctl --print-esp-path 2>/dev/null || echo /boot)"
-    quiet_params=(quiet loglevel=3 systemd.show_status=auto rd.systemd.show_status=auto rd.udev.log_level=3 vt.global_cursor_default=0)
-    rebuild_uki=false
     info "Cichy start: ukrywam menu i komunikaty (menu startowe: przytrzymaj Spację po logo HP)"
 
     # Menu systemd-boot bez odliczania
-    if sudo test -f "$esp/loader/loader.conf"; then
-        if sudo grep -q '^timeout' "$esp/loader/loader.conf"; then
-            sudo sed -i 's/^timeout.*/timeout 0/' "$esp/loader/loader.conf"
+    if sudo test -f "$ESP/loader/loader.conf"; then
+        if sudo grep -q '^timeout' "$ESP/loader/loader.conf"; then
+            sudo sed -i 's/^timeout.*/timeout 0/' "$ESP/loader/loader.conf"
         else
-            echo 'timeout 0' | sudo tee -a "$esp/loader/loader.conf" >/dev/null
+            echo 'timeout 0' | sudo tee -a "$ESP/loader/loader.conf" >/dev/null
         fi
     fi
 
-    # Układ 1: zwykłe wpisy systemd-boot
-    while IFS= read -r entry; do
-        for p in "${quiet_params[@]}"; do
-            sudo grep -Eq "^options.*(^|[[:space:]])${p}([[:space:]]|$)" "$entry" \
-                || sudo sed -i "/^options /s/\$/ ${p}/" "$entry"
-        done
-    done < <(sudo find "$esp/loader/entries" -name '*.conf' 2>/dev/null)
-
-    # Układ 2: UKI - parametry jądra w /etc/kernel/cmdline
-    if [[ -f /etc/kernel/cmdline ]]; then
-        for p in "${quiet_params[@]}"; do
-            if ! grep -Eq "(^|[[:space:]])${p}([[:space:]]|$)" /etc/kernel/cmdline; then
-                sudo sed -i "1s/\$/ ${p}/" /etc/kernel/cmdline
-                rebuild_uki=true
-            fi
-        done
-    fi
+    for p in quiet loglevel=3 systemd.show_status=auto rd.systemd.show_status=auto rd.udev.log_level=3 vt.global_cursor_default=0; do
+        set_kernel_param "$p"
+    done
 
     # Logo VoxOS zamiast logo Archa (UKI pokazuje obrazek z opcji --splash)
     splash=/usr/share/voxos/splash.bmp
     if ! sudo cmp -s "$REPO_DIR/boot/splash.bmp" "$splash"; then
         sudo install -Dm644 "$REPO_DIR/boot/splash.bmp" "$splash"
-        rebuild_uki=true
+        REBUILD_INITRAMFS=true
     fi
     for preset in /etc/mkinitcpio.d/*.preset; do
         [[ -f $preset ]] || continue
         if grep -q -- '--splash' "$preset" && ! grep -q -- "--splash $splash" "$preset"; then
             sudo sed -i -E "s#--splash[[:space:]]+[^\" ]+#--splash $splash#g" "$preset"
-            rebuild_uki=true
+            REBUILD_INITRAMFS=true
         fi
     done
+fi
 
-    if [[ $rebuild_uki == true ]] && compgen -G "/etc/mkinitcpio.d/*.preset" >/dev/null; then
-        info "Przebudowuję obraz startowy (mkinitcpio -P), to potrwa chwilę"
-        sudo mkinitcpio -P || warn "mkinitcpio zgłosił problem - sprawdź komunikaty powyżej przed restartem"
+# --- Hibernacja i klapka ----------------------------------------------------------------
+# Plik wymiany o rozmiarze RAM w osobnym podwoluminie btrfs @swap (poza migawkami snappera),
+# zamknięcie klapki na baterii = uśpienie, po 2 h hibernacja (bateria nie spada do zera).
+SWAPFILE=/swap/swapfile
+if [[ $HIBERNATE == true ]]; then
+    if [[ $(findmnt -no FSTYPE /) != btrfs ]]; then
+        warn "Hibernacja: obsługiwany jest tylko system plików btrfs - pomijam"
+    else
+        ram_gb=$(( ($(awk '/^MemTotal/ {print $2}' /proc/meminfo) + 1048575) / 1048576 ))
+        if ! sudo test -f "$SWAPFILE"; then
+            free_gb=$(df --output=avail -BG / | tail -1 | tr -dc '0-9')
+            if (( free_gb < ram_gb + 10 )); then
+                warn "Hibernacja: za mało miejsca na dysku (potrzeba ${ram_gb} GB + zapas) - pomijam"
+            else
+                info "Hibernacja: tworzę plik wymiany ${ram_gb} GB w podwoluminie @swap"
+                if ! grep -Eq '^[^#]+[[:space:]]/swap[[:space:]]' /etc/fstab; then
+                    root_src="$(findmnt -no SOURCE / | sed 's/\[.*\]$//')"
+                    top="$(mktemp -d)"
+                    sudo mount -o subvolid=5 "$root_src" "$top"
+                    sudo test -d "$top/@swap" || sudo btrfs subvolume create "$top/@swap" >/dev/null
+                    sudo umount "$top"
+                    rmdir "$top" 2>/dev/null || true
+                    sudo mkdir -p /swap
+                    echo "UUID=$(findmnt -no UUID /) /swap btrfs subvol=/@swap,noatime 0 0" | sudo tee -a /etc/fstab >/dev/null
+                    sudo systemctl daemon-reload
+                fi
+                mountpoint -q /swap || sudo mount /swap
+                sudo btrfs filesystem mkswapfile --size "${ram_gb}g" "$SWAPFILE" >/dev/null
+                grep -q "^$SWAPFILE[[:space:]]" /etc/fstab \
+                    || echo "$SWAPFILE none swap defaults,pri=0 0 0" | sudo tee -a /etc/fstab >/dev/null
+            fi
+        fi
+        if sudo test -f "$SWAPFILE"; then
+            swapon --show=NAME --noheadings | grep -qx "$SWAPFILE" || sudo swapon -p 0 "$SWAPFILE" || true
+            offset="$(sudo btrfs inspect-internal map-swapfile -r "$SWAPFILE")"
+            set_kernel_param "resume=UUID=$(findmnt -no UUID /)"
+            set_kernel_param "resume_offset=$offset"
+            # Initramfs bez systemd (hook "udev") potrzebuje hooka "resume"; z hookiem "systemd" działa samo
+            if grep -Eq '^HOOKS=.*\budev\b' /etc/mkinitcpio.conf && ! grep -Eq '^HOOKS=.*\bresume\b' /etc/mkinitcpio.conf; then
+                sudo sed -i -E '/^HOOKS=/ s/\bfilesystems\b/resume filesystems/' /etc/mkinitcpio.conf
+                REBUILD_INITRAMFS=true
+            fi
+            sudo install -d /etc/systemd/logind.conf.d /etc/systemd/sleep.conf.d /etc/voxos
+            printf '[Login]\nHandleLidSwitch=suspend-then-hibernate\nHandleLidSwitchExternalPower=suspend\nHandleLidSwitchDocked=ignore\n' \
+                | sudo tee /etc/systemd/logind.conf.d/voxos.conf >/dev/null
+            printf '[Sleep]\nHibernateDelaySec=2h\n' | sudo tee /etc/systemd/sleep.conf.d/voxos.conf >/dev/null
+            sudo touch /etc/voxos/hibernate
+            sudo systemctl kill -s HUP systemd-logind 2>/dev/null || true   # nowe ustawienia klapki bez wylogowania
+            info "Hibernacja gotowa: klapka na baterii usypia, po 2 h hibernacja (menu zasilania: Hibernuj)"
+        fi
     fi
+elif [[ -f /etc/voxos/hibernate ]]; then
+    sudo rm -f /etc/voxos/hibernate /etc/systemd/logind.conf.d/voxos.conf /etc/systemd/sleep.conf.d/voxos.conf
+    sudo systemctl kill -s HUP systemd-logind 2>/dev/null || true
+fi
+
+if [[ $REBUILD_INITRAMFS == true ]] && compgen -G "/etc/mkinitcpio.d/*.preset" >/dev/null; then
+    info "Przebudowuję obraz startowy (mkinitcpio -P), to potrwa chwilę"
+    sudo mkinitcpio -P || warn "mkinitcpio zgłosił problem - sprawdź komunikaty powyżej przed restartem"
 fi
 
 # --- Firewall ------------------------------------------------------------------
@@ -352,6 +437,10 @@ if command -v ufw >/dev/null 2>&1; then
         if command -v kdeconnect-cli >/dev/null 2>&1; then
             sudo ufw allow 1714:1764/udp comment 'KDE Connect' >/dev/null
             sudo ufw allow 1714:1764/tcp comment 'KDE Connect' >/dev/null
+        fi
+        # Wykrywanie drukarek i skanerów w sieci (mDNS)
+        if systemctl list-unit-files avahi-daemon.service --no-legend 2>/dev/null | grep -q .; then
+            sudo ufw allow 5353/udp comment 'mDNS (drukarki, skanery)' >/dev/null
         fi
         sudo systemctl enable ufw.service
     else

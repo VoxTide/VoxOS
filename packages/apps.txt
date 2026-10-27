@@ -31,3 +31,17 @@ hunspell-pl                   # polski słownik (sprawdzanie pisowni)
 ttf-liberation                # zamienniki Arial, Times New Roman, Courier
 ttf-carlito                   # zamiennik Calibri (ten sam rozmiar liter)
 ttf-caladea                   # zamiennik Cambria
+
+# Tekst z ekranu i edycja zrzutów
+tesseract
+tesseract-data-pol
+tesseract-data-eng
+satty                         # edycja zrzutów: strzałki, tekst, zamazywanie
+
+# Launcher: kalkulator i szukanie plików
+rofi-calc                     # zakładka KALKULATOR (Super + K)
+libqalculate
+fd                            # zakładka PLIKI (Super + Shift + F)
+
+# Bateria: sprzętowe dekodowanie wideo (sprawdzenie: vainfo)
+libva-utils

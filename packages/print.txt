@@ -1,0 +1,12 @@
+# Drukowanie i skanowanie (drukarki sieciowe i USB bez sterowników producenta: IPP Everywhere / AirPrint)
+cups                          # system drukowania
+cups-filters                  # konwersja dokumentów dla drukarek
+cups-pdf                      # wirtualna drukarka "zapisz jako PDF"
+ghostscript
+system-config-printer         # okno ustawień drukarek
+avahi                         # wykrywanie drukarek i skanerów w sieci (mDNS)
+nss-mdns                      # nazwy *.local w sieci domowej
+ipp-usb                       # drukarki/skanery USB działające jak sieciowe
+sane                          # skanowanie
+sane-airscan                  # skanery sieciowe i USB bez sterowników (eSCL/WSD)
+simple-scan                   # program do skanowania (zapis do PDF)

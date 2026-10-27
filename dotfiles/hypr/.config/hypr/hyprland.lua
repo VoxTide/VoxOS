@@ -3,7 +3,7 @@
 -- Ustawienia konkretnego sprzętu (monitory, jasność, touchpad) są w host.lua
 
 local terminal    = "kitty"
-local menu        = "rofi -show drun"
+local menu        = "bash ~/.local/bin/voxos-launcher"
 local fileManager = "thunar"
 local mainMod     = "SUPER"
 
@@ -94,6 +94,11 @@ hl.bind(mainMod .. " + V",      hl.dsp.exec_cmd("cliphist list | rofi -dmenu | c
 hl.bind(mainMod .. " + S",      hl.dsp.exec_cmd("python3 ~/.local/bin/voxos-panel"))     -- panel szybkich ustawień
 hl.bind(mainMod .. " + M",      hl.dsp.exec_cmd("bash ~/.local/bin/voxos-minimize"))           -- minimalizuj okno
 hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-minimize restore")) -- przywróć zminimalizowane
+hl.bind("ALT + Tab",              hl.dsp.exec_cmd("bash ~/.local/bin/voxos-alttab"))        -- przełącznik okien
+hl.bind(mainMod .. " + SHIFT + Return", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-dropdown"))  -- wysuwany terminal
+hl.bind(mainMod .. " + K",         hl.dsp.exec_cmd("bash ~/.local/bin/voxos-launcher calc"))  -- kalkulator
+hl.bind(mainMod .. " + SHIFT + F", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-launcher files")) -- szukanie plików
+hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-ocr"))           -- tekst z ekranu do schowka
 hl.bind(mainMod .. " + slash",  hl.dsp.exec_cmd("bash ~/.local/bin/voxos-keys"))   -- ściągawka skrótów
 hl.bind(mainMod .. " + N",      hl.dsp.exec_cmd("makoctl dismiss --all"))           -- schowaj powiadomienia
 hl.bind(mainMod .. " + Tab",    hl.dsp.focus({ workspace = "previous" }))           -- poprzedni pulpit
@@ -105,6 +110,7 @@ hl.bind(mainMod .. " + period",    hl.dsp.exec_cmd("rofi -modi emoji -show emoji
 -- Zrzuty ekranu (plik w Obrazy/Zrzuty + kopia w schowku + powiadomienie z podglądem)
 hl.bind("Print",         hl.dsp.exec_cmd("bash ~/.local/bin/voxos-screenshot area"))
 hl.bind("SHIFT + Print", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-screenshot full"))
+hl.bind("CTRL + Print",  hl.dsp.exec_cmd("bash ~/.local/bin/voxos-screenshot edit"))   -- zrzut od razu do edycji (satty)
 
 -- Fokus strzałkami
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
@@ -155,10 +161,28 @@ hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
 -- Okienka ustawień otwierają się jako pływające, wyśrodkowane, w rozsądnym rozmiarze
 hl.window_rule({
     name   = "float-settings",
-    match  = { class = "^(org.pulseaudio.pavucontrol|nm-connection-editor|blueman-manager|org.gnome.FileRoller)$" },
+    match  = { class = "^(org.pulseaudio.pavucontrol|nm-connection-editor|blueman-manager|org.gnome.FileRoller|system-config-printer)$" },
     float  = true,
     center = true,
     size   = "900 600",
+})
+
+-- Wysuwany terminal (voxos-dropdown): pływający, u góry ekranu, na ukrytym pulpicie special:dropdown
+hl.window_rule({
+    name      = "dropdown-terminal",
+    match     = { class = "^voxos-dropdown$" },
+    float     = true,
+    size      = { "monitor_w*0.7", "monitor_h*0.55" },
+    move      = { "monitor_w*0.15", "60" },
+    workspace = "special:dropdown silent",
+})
+
+-- Edycja zrzutów ekranu (satty): pływające okno na środku
+hl.window_rule({
+    name   = "satty",
+    match  = { class = "^com.gabm.satty$" },
+    float  = true,
+    center = true,
 })
 
 -- Obraz w obrazie z Firefoksa: pływający i widoczny na każdym pulpicie

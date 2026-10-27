@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# VoxOS - launcher z zakładkami: APLIKACJE / KALKULATOR / PLIKI (Ctrl + Tab albo klik przełącza)
+#   voxos-launcher          aplikacje (Super + D)
+#   voxos-launcher calc     kalkulator: wpisz np. 2+2*3, 15% z 240, 5 km w mi; Enter kopiuje wynik (Super + K)
+#   voxos-launcher files    szukanie plików w katalogu domowym (Super + Shift + F)
+set -u
+mode="${1:-drun}"
+args=(-display-drun "APLIKACJE" -display-files "PLIKI")
+modi="drun"
+# Kalkulator to wtyczka rofi-calc; gdyby jej nie było, launcher działa bez tej zakładki
+if compgen -G "/usr/lib/rofi/calc.so" >/dev/null; then
+    modi+=",calc"
+    args+=(-display-calc "KALKULATOR" -calc-command "echo -n '{result}' | wl-copy" -no-show-match)
+else
+    [[ $mode == calc ]] && mode=drun
+fi
+modi+=",files:bash $HOME/.local/bin/voxos-rofi-files"
+
+exec rofi -show "$mode" -modi "$modi" "${args[@]}" \
+    -theme-str 'mainbox { children: [ inputbar, mode-switcher, listview ]; }'

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# VoxOS - tekst z ekranu (Super + Shift + T): zaznacz fragment, rozpoznany tekst trafia do schowka.
+# Rozpoznawanie: tesseract, język polski + angielski.
+set -u
+command -v tesseract >/dev/null || { notify-send -a VoxOS "Brak tesseract" "Pełna instalacja VoxOS: bash ~/voxos/install.sh"; exit 1; }
+geom="$(slurp)" || exit 0
+langs="pol+eng"
+tesseract --list-langs 2>/dev/null | grep -qx pol || langs="eng"
+
+# Powiększenie 2x poprawia rozpoznawanie drobnego tekstu (np. slajdy, zrzuty stron)
+text=$(grim -g "$geom" -s 2 - | tesseract stdin stdout -l "$langs" 2>/dev/null | sed -e 's/[[:space:]]*$//' | sed -e '/./,$!d')
+if [[ -z ${text//[[:space:]]/} ]]; then
+    notify-send -a VoxOS "Tekst z ekranu" "Nie rozpoznano tekstu w zaznaczeniu"
+    exit 0
+fi
+printf '%s' "$text" | wl-copy
+preview=$(printf '%s' "$text" | head -c 160)
+notify-send -a VoxOS "Tekst skopiowany ($(printf '%s' "$text" | wc -w) słów)" "$preview"
