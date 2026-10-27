@@ -100,9 +100,9 @@ GIT_FALLBACK=(
 git_aur=()
 for entry in "${GIT_FALLBACK[@]}"; do
     read -r name max <<<"$entry"
-    repo_ver=$(pacman -Si -- "$name" 2>/dev/null | awk '/^Version/ { print $3; exit }')
-    [[ -n $repo_ver ]] || continue
-    if (( $(vercmp "$repo_ver" "$max") <= 0 )); then
+    # LC_ALL=C: po polsku pacman pisze "Wersja" zamiast "Version"
+    repo_ver=$(LC_ALL=C pacman -Si -- "$name" 2>/dev/null | awk '/^Version/ { print $3; exit }')
+    if [[ -z $repo_ver ]] || (( $(vercmp "$repo_ver" "$max") <= 0 )); then
         for i in "${!pkgs[@]}"; do
             [[ ${pkgs[i]} == "$name" ]] && unset 'pkgs[i]'
         done
