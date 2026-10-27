@@ -12,7 +12,8 @@
         "group/active"
     ],
     "modules-center": [
-        "clock"
+        "clock",
+        "mpris"
     ],
     "modules-right": [
         "custom/updates",
@@ -153,5 +154,26 @@
         "format": "󰚰 {}",
         "on-click": "kitty --title Aktualizacja sh -c 'yay -Syu; pkill -RTMIN+8 waybar; echo; read -rp \"Enter zamyka okno \"'",
         "signal": 8
+    },
+    "mpris": {
+        "format": "{player_icon} {dynamic}",
+        "format-paused": "{status_icon} {dynamic}",
+        "dynamic-order": [
+            "title",
+            "artist"
+        ],
+        "dynamic-len": 32,
+        "player-icons": {
+            "default": "󰐊",
+            "firefox": "󰈹",
+            "spotify": "󰓇",
+            "mpv": "󰝚"
+        },
+        "status-icons": {
+            "paused": "󰏤"
+        },
+        "tooltip-format": "{player}: {title} - {artist}\nKlik: pauza  Prawy: następny",
+        "on-click": "playerctl play-pause",
+        "on-click-right": "playerctl next"
     }
 }

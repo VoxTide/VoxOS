@@ -98,3 +98,14 @@ window#waybar.empty #active { opacity: 0; }
     margin: 2px 0;
     color: @text;
 }
+
+/* Muzyka (mpris) - widoczna tylko, gdy coś gra */
+#mpris {
+    background: @black;
+    border: 1px solid @line;
+    border-radius: 19px;
+    padding: 0 14px;
+    margin: 2px 0;
+    color: @text;
+}
+#mpris.paused { color: @dim; }

@@ -5,6 +5,14 @@
 export PATH="$HOME/.local/bin:$PATH"
 export EDITOR=nano
 
+# Flutter, Android SDK i Java 17 (instaluje voxos-dev-setup)
+[[ -d $HOME/development/flutter/bin ]] && export PATH="$HOME/development/flutter/bin:$PATH"
+if [[ -d $HOME/Android/Sdk ]]; then
+    export ANDROID_HOME="$HOME/Android/Sdk"
+    export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+fi
+[[ -d /usr/lib/jvm/java-17-openjdk ]] && export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+
 # Historia: dużo, bez duplikatów, wspólna dla wszystkich terminali
 HISTSIZE=10000
 HISTFILESIZE=20000
@@ -18,6 +26,14 @@ alias grep='grep --color=auto'
 alias up='yay -Syu; pkill -RTMIN+8 waybar 2>/dev/null'   # aktualizacja całego systemu + odświeżenie licznika na pasku
 alias snaps='sudo snapper -c root list'                  # lista migawek
 alias hconf='$EDITOR ~/.config/hypr/hyprland.lua'
+
+# Homelab (voxos-homelab-setup tworzy ~/.ssh/config.d/voxos i ~/.config/voxos/homelab.conf)
+pihole-web() {
+    local ip
+    ip="$(. ~/.config/voxos/homelab.conf 2>/dev/null; echo "${PIHOLE_IP:-}")"
+    if [[ -z $ip ]]; then echo "Najpierw: voxos-homelab-setup"; return 1; fi
+    xdg-open "http://$ip/admin" >/dev/null 2>&1 &
+}
 
 # Kolorowe ls z ikonami (eza), kolorowy cat (bat) - z zapasowymi wersjami, gdyby ich nie było
 if command -v eza >/dev/null; then

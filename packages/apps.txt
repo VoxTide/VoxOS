@@ -14,3 +14,20 @@ blueman                       # okno i ikona Bluetooth
 # Powiadomienia i ekran
 pacman-contrib                # checkupdates (licznik aktualizacji na pasku)
 hyprsunset                    # nocne światło
+
+# Narzędzia pulpitu
+wf-recorder                   # nagrywanie ekranu (Super+Shift+R)
+hyprpicker                    # próbnik kolorów (Super+Shift+C)
+rofi-emoji                    # wybór emoji (Super+.)
+playerctl                     # sterowanie muzyką: klawisze i pasek
+
+# Telefon i tablet
+kdeconnect                    # pliki, powiadomienia, schowek z telefonem (port 1714-1764 w ufw)
+
+# Studia i dokumenty
+libreoffice-fresh             # Writer, Calc, Impress
+libreoffice-fresh-pl          # polski interfejs LibreOffice
+hunspell-pl                   # polski słownik (sprawdzanie pisowni)
+ttf-liberation                # zamienniki Arial, Times New Roman, Courier
+ttf-carlito                   # zamiennik Calibri (ten sam rozmiar liter)
+ttf-caladea                   # zamiennik Cambria

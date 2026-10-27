@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# VoxOS - jednorazowa konfiguracja środowiska programistycznego (można uruchamiać ponownie)
+#   - Flutter (wersja jak w projekcie Na czas) w ~/development/flutter
+#   - Android SDK w ~/Android/Sdk (platform-tools, cmdline-tools, licencje)
+#   - Claude Code (oficjalny instalator, aktualizuje się sam)
+#   - rozszerzenia VS Code: Flutter/Dart, Python, podgląd stron na żywo
+#   - klucz SSH (GitHub, serwery w domu)
+# Pakiety systemowe (JDK 17, adb, sdkmanager) instaluje install.sh z packages/dev.txt.
+set -uo pipefail
+
+FLUTTER_VERSION="${FLUTTER_VERSION:-3.47.7}"
+FLUTTER_DIR="$HOME/development/flutter"
+ANDROID_SDK="$HOME/Android/Sdk"
+JDK_DIR=/usr/lib/jvm/java-17-openjdk
+
+info() { printf '\e[1;36m==> %s\e[0m\n' "$*"; }
+warn() { printf '\e[1;33m!! %s\e[0m\n' "$*"; }
+ok()   { printf '\e[1;32m✓ %s\e[0m\n' "$*"; }
+
+# --- Flutter -------------------------------------------------------------------
+if [[ -x $FLUTTER_DIR/bin/flutter ]]; then
+    ok "Flutter już jest: $FLUTTER_DIR"
+else
+    info "Pobieram Flutter $FLUTTER_VERSION (kilkaset MB)"
+    mkdir -p "$(dirname "$FLUTTER_DIR")"
+    if ! git clone --depth 1 -b "$FLUTTER_VERSION" https://github.com/flutter/flutter.git "$FLUTTER_DIR"; then
+        warn "Nie ma wersji $FLUTTER_VERSION - biorę aktualną stabilną"
+        git clone --depth 1 -b stable https://github.com/flutter/flutter.git "$FLUTTER_DIR" || { warn "Nie udało się pobrać Fluttera"; }
+    fi
+fi
+export PATH="$FLUTTER_DIR/bin:$ANDROID_SDK/platform-tools:$ANDROID_SDK/cmdline-tools/latest/bin:$PATH"
+
+# --- Android SDK -----------------------------------------------------------------
+sdkmanager=""
+if [[ -x $ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager ]]; then
+    sdkmanager="$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager"
+elif [[ -x /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager ]]; then
+    sdkmanager=/opt/android-sdk/cmdline-tools/latest/bin/sdkmanager
+fi
+
+if [[ -n $sdkmanager && -d $JDK_DIR ]]; then
+    export JAVA_HOME="$JDK_DIR"
+    info "Instaluję Android SDK w $ANDROID_SDK (platform-tools, cmdline-tools)"
+    mkdir -p "$ANDROID_SDK"
+    "$sdkmanager" --sdk_root="$ANDROID_SDK" --install "platform-tools" "cmdline-tools;latest" \
+        || warn "sdkmanager zgłosił problem przy instalacji"
+    info "Akceptuję licencje Android SDK"
+    yes | "$sdkmanager" --sdk_root="$ANDROID_SDK" --licenses >/dev/null 2>&1 || true
+    ok "Android SDK gotowy (wersje platform Gradle doinstaluje sam przy pierwszym buildzie)"
+else
+    warn "Brak sdkmanager albo JDK 17 - najpierw pełna instalacja: bash ~/voxos/install.sh"
+fi
+
+if command -v flutter >/dev/null; then
+    info "Konfiguruję Fluttera"
+    flutter config --no-analytics >/dev/null 2>&1 || true
+    flutter config --android-sdk "$ANDROID_SDK" >/dev/null 2>&1 || true
+    [[ -d $JDK_DIR ]] && flutter config --jdk-dir "$JDK_DIR" >/dev/null 2>&1
+    yes | flutter doctor --android-licenses >/dev/null 2>&1 || true
+fi
+
+# --- Claude Code -----------------------------------------------------------------
+if command -v claude >/dev/null; then
+    ok "Claude Code już jest ($(claude --version 2>/dev/null | head -1))"
+else
+    info "Instaluję Claude Code (oficjalny instalator, aktualizuje się sam)"
+    curl -fsSL https://claude.ai/install.sh | bash || warn "Instalacja Claude Code się nie udała"
+fi
+
+# --- VS Code ---------------------------------------------------------------------
+if command -v code >/dev/null; then
+    info "Instaluję rozszerzenia VS Code"
+    for ext in Dart-Code.dart-code Dart-Code.flutter ms-python.python ms-vscode.live-server; do
+        code --install-extension "$ext" --force >/dev/null 2>&1 && ok "$ext" || warn "Nie udało się: $ext"
+    done
+fi
+
+# --- Klucz SSH -------------------------------------------------------------------
+if [[ ! -f $HOME/.ssh/id_ed25519 ]]; then
+    info "Tworzę klucz SSH (Enter = bez hasła do klucza, albo wpisz hasło)"
+    mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+    ssh-keygen -t ed25519 -C "$USER@$(cat /etc/hostname)" -f "$HOME/.ssh/id_ed25519"
+fi
+if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
+    if gh ssh-key list 2>/dev/null | grep -q "$(awk '{print $2}' "$HOME/.ssh/id_ed25519.pub")"; then
+        ok "Klucz SSH jest już na GitHubie"
+    elif gh ssh-key add "$HOME/.ssh/id_ed25519.pub" --title "voxos-$(cat /etc/hostname)" 2>/dev/null; then
+        ok "Klucz SSH dodany do GitHuba"
+    else
+        warn "GitHub nie przyjął klucza - brakuje uprawnienia. Wpisz: gh auth refresh -h github.com -s admin:public_key"
+        warn "a potem uruchom voxos-dev-setup jeszcze raz"
+    fi
+fi
+
+echo
+info "Podsumowanie (flutter doctor):"
+command -v flutter >/dev/null && flutter doctor || true
+echo
+ok "Gotowe. Otwórz nowy terminal, żeby działały komendy flutter, adb i claude."

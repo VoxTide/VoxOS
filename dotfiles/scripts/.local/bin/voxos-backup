@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# VoxOS - kopia ważnych folderów na domowy serwer przez rsync (domyślnie: zomboid)
+# Ustawienia: ~/.config/voxos/backup.conf (tworzony przy pierwszym uruchomieniu).
+# Kopia tylko dokłada i aktualizuje pliki - nic nie jest kasowane na serwerze.
+set -uo pipefail
+
+CONF="$HOME/.config/voxos/backup.conf"
+if [[ ! -f $CONF ]]; then
+    mkdir -p "$(dirname "$CONF")"
+    cat > "$CONF" <<'CONF'
+# VoxOS - ustawienia kopii zapasowej (voxos-backup)
+BACKUP_HOST=zomboid                     # nazwa z ~/.ssh/config (voxos-homelab-setup)
+BACKUP_DIR=backup/elitebook-1030        # folder na serwerze (w katalogu domowym użytkownika)
+# Foldery względem katalogu domowego; nieistniejące są pomijane
+BACKUP_PATHS=(Dokumenty Obrazy Wideo Muzyka flutter_projects voxos)
+# Tego nie kopiujemy (da się odtworzyć: buildy, cache)
+BACKUP_EXCLUDE=(build .dart_tool .gradle node_modules .cache __pycache__ .venv)
+CONF
+    echo "Utworzono $CONF - sprawdź ustawienia i uruchom ponownie."
+    exit 0
+fi
+# shellcheck source=/dev/null
+source "$CONF"
+
+notify() { command -v notify-send >/dev/null && notify-send -a voxos-backup "$@"; }
+
+if ! ssh -o BatchMode=yes -o ConnectTimeout=5 "$BACKUP_HOST" true 2>/dev/null; then
+    echo "Nie mogę połączyć się z $BACKUP_HOST. Uruchom voxos-homelab-setup albo sprawdź, czy serwer działa." >&2
+    notify -u critical "Kopia zapasowa" "Serwer $BACKUP_HOST niedostępny"
+    exit 1
+fi
+if ! ssh "$BACKUP_HOST" 'command -v rsync' >/dev/null 2>&1; then
+    echo "Na $BACKUP_HOST brakuje rsync. Zaloguj się (ssh $BACKUP_HOST) i wpisz: sudo apt install rsync" >&2
+    exit 1
+fi
+
+cd "$HOME" || exit 1
+paths=()
+for p in "${BACKUP_PATHS[@]}"; do [[ -e $p ]] && paths+=("./$p"); done
+(( ${#paths[@]} )) || { echo "Brak folderów do skopiowania"; exit 0; }
+excludes=()
+for e in "${BACKUP_EXCLUDE[@]}"; do excludes+=(--exclude "$e/"); done
+
+echo "Kopiuję: ${paths[*]} -> $BACKUP_HOST:$BACKUP_DIR/"
+ssh "$BACKUP_HOST" "mkdir -p '$BACKUP_DIR'"
+if rsync -aHR --info=progress2 "${excludes[@]}" "${paths[@]}" "$BACKUP_HOST:$BACKUP_DIR/"; then
+    notify "Kopia zapasowa" "Gotowe: $BACKUP_HOST:$BACKUP_DIR"
+else
+    notify -u critical "Kopia zapasowa" "rsync zgłosił błąd - zobacz terminal"
+    exit 1
+fi

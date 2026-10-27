@@ -85,6 +85,11 @@ boot/splash.bmp     logo VoxOS przy starcie
 | 3 palce w bok (touchpad) | zmiana pulpitu |
 | `Print` / `Shift + Print` | zrzut zaznaczenia / całego ekranu: plik w Obrazy/Zrzuty + schowek + powiadomienie |
 | `Super + N` | schowaj powiadomienia |
+| `Super + Shift + N` | przywróć ostatnie powiadomienie |
+| `Super + Shift + R` | nagrywanie ekranu start/stop (Wideo/Nagrania) |
+| `Super + Shift + C` | próbnik kolorów (HEX do schowka) |
+| `Super + .` | emoji |
+| klawisze multimedialne | muzyka: pauza, następny, poprzedni |
 | `Super + /` | ściągawka skrótów |
 | `Super + Escape` | menu zasilania (blokada, wyloguj, uśpij, restart, wyłącz) |
 | `Super + T` | wybór motywu |
@@ -101,6 +106,22 @@ boot/splash.bmp     logo VoxOS przy starcie
 - **Pliki**: miniatury, archiwa (Rozpakuj tutaj), kosz i pendrive'y montowane automatycznie. Zdjęcia: Loupe, PDF: Papers, wideo: mpv. Bluetooth: ikona w zasobniku.
 - **Okienka ustawień** (głośność, sieć, Bluetooth, archiwa) otwierają się jako pływające. Obraz w obrazie z Firefoksa jest widoczny na każdym pulpicie.
 - **Terminal**: prompt starship w kolorach motywu, `Ctrl+R` szukanie w historii (fzf), `z <folder>` skakanie po folderach (zoxide), `ls`/`ll`/`lt` z ikonami (eza), kolorowy `cat` (bat), `ff` = fastfetch, podpowiedzi Tab.
+
+Okna aktywują się **po kliknięciu** (samo najechanie myszą nie zmienia aktywnego okna, kółko myszy działa pod kursorem).
+
+## Programowanie, studia, homelab
+
+Jednorazowe skrypty (można je uruchamiać ponownie, niczego nie psują):
+
+```bash
+voxos-dev-setup        # Flutter 3.47.7, Android SDK, Claude Code, rozszerzenia VS Code, klucz SSH
+voxos-homelab-setup    # ssh zomboid / ssh pihole bez hasła, pihole-web otwiera panel Pi-hole
+voxos-backup           # kopia Dokumentów, Obrazów, projektów itd. na serwer (rsync, ustawienia w ~/.config/voxos/backup.conf)
+```
+
+- **Telefon w trybie debugowania USB** + kabel: `adb devices`, potem `flutter run` w folderze projektu.
+- **Studia**: LibreOffice po polsku ze słownikiem, czcionki zgodne z dokumentami z Worda (Liberation, Carlito, Caladea), w VS Code „Live Preview” do podglądu strony HTML na żywo.
+- **KDE Connect**: aplikacja KDE Connect na telefonie (na tablecie działa też Zorin Connect), ikona w zasobniku, porty 1714-1764 otwarte w ufw.
 
 ## Aktualizacja z pliku zip
 

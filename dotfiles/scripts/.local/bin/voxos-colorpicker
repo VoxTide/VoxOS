@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# VoxOS - próbnik kolorów (Super+Shift+C): kliknij w dowolny piksel, kolor HEX trafia do schowka
+set -u
+color="$(hyprpicker -a -f hex 2>/dev/null)" || exit 0
+[[ -n $color ]] || exit 0
+notify-send -a voxos -t 3000 "󰏘  $color" "Skopiowano do schowka"

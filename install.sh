@@ -319,6 +319,11 @@ fi
 if command -v ufw >/dev/null 2>&1; then
     info "Włączam firewall (ufw): blokuje ruch przychodzący, wychodzący bez zmian"
     if sudo ufw default deny incoming && sudo ufw default allow outgoing && sudo ufw --force enable; then
+        # KDE Connect (telefon, tablet) potrzebuje portów 1714-1764 w sieci lokalnej
+        if command -v kdeconnect-cli >/dev/null 2>&1; then
+            sudo ufw allow 1714:1764/udp comment 'KDE Connect' >/dev/null
+            sudo ufw allow 1714:1764/tcp comment 'KDE Connect' >/dev/null
+        fi
         sudo systemctl enable ufw.service
     else
         warn "Nie udało się włączyć ufw (zwykle po aktualizacji jądra). Po restarcie wpisz: sudo ufw enable"

@@ -4,3 +4,12 @@ python-pipx       # narzędzia Pythona bez psucia systemu
 nodejs
 npm
 github-cli
+
+# Flutter i Android (aplikacje na telefon)
+jdk17-openjdk                 # Java 17 do budowania aplikacji Android
+android-tools                 # adb - instalowanie aplikacji na telefonie przez kabel
+android-udev                  # uprawnienia do telefonu po USB bez sudo
+unzip
+zip
+which
+rsync                         # kopie zapasowe na serwer (voxos-backup)

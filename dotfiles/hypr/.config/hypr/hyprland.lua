@@ -26,6 +26,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("blueman-applet")                  -- ikona Bluetooth w zasobniku
     hl.exec_cmd("hyprsunset")                      -- nocne światło (~/.config/hypr/hyprsunset.conf)
     hl.exec_cmd("thunar --daemon")                 -- szybsze otwieranie Thunara
+    hl.exec_cmd("kdeconnect-indicator")            -- KDE Connect: telefon i tablet
 end)
 
 -- Kursor Bibata (motyw ustawiany też dla GTK w ~/.config/gtk-*/settings.ini)
@@ -67,7 +68,7 @@ end
 hl.config({
     input = {
         kb_layout    = "pl",
-        follow_mouse = 1,
+        follow_mouse = 2,   -- fokus po kliknięciu (najechanie nie zmienia aktywnego okna, kółko myszy działa pod kursorem)
         touchpad = {
             natural_scroll = true,
         },
@@ -93,6 +94,10 @@ hl.bind(mainMod .. " + V",      hl.dsp.exec_cmd("cliphist list | rofi -dmenu | c
 hl.bind(mainMod .. " + slash",  hl.dsp.exec_cmd("bash ~/.local/bin/voxos-keys"))   -- ściągawka skrótów
 hl.bind(mainMod .. " + N",      hl.dsp.exec_cmd("makoctl dismiss --all"))           -- schowaj powiadomienia
 hl.bind(mainMod .. " + Tab",    hl.dsp.focus({ workspace = "previous" }))           -- poprzedni pulpit
+hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd("makoctl restore"))                -- przywróć ostatnie powiadomienie
+hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-record"))  -- nagrywanie ekranu (start/stop)
+hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-colorpicker")) -- próbnik kolorów
+hl.bind(mainMod .. " + period",    hl.dsp.exec_cmd("rofi -modi emoji -show emoji"))     -- emoji (Super + .)
 
 -- Zrzuty ekranu (plik w Obrazy/Zrzuty + kopia w schowku + powiadomienie z podglądem)
 hl.bind("Print",         hl.dsp.exec_cmd("bash ~/.local/bin/voxos-screenshot area"))
@@ -130,6 +135,11 @@ hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-osd volume up"),   { locked = true, repeating = true })
 hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-osd volume down"), { locked = true, repeating = true })
 hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("bash ~/.local/bin/voxos-osd volume mute"), { locked = true })
+-- Muzyka i filmy (playerctl: Spotify, Firefox, mpv...)
+hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
+hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("bash ~/.local/bin/voxos-osd mic mute"),    { locked = true })
 
 -- Gest: 3 palce w poziomie na touchpadzie = zmiana pulpitu
