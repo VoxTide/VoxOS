@@ -8,7 +8,8 @@
     "spacing": 6,
     "modules-left": [
         "custom/arch",
-        "hyprland/workspaces"
+        "hyprland/workspaces",
+        "group/active"
     ],
     "modules-center": [
         "clock"
@@ -30,6 +31,29 @@
         "format": "{id}",
         "on-scroll-up": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e+1\" })'",
         "on-scroll-down": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e-1\" })'"
+    },
+    "group/active": {
+        "orientation": "horizontal",
+        "modules": [
+            "hyprland/window",
+            "custom/close"
+        ]
+    },
+    "hyprland/window": {
+        "format": "{title}",
+        "max-length": 45,
+        "icon": true,
+        "icon-size": 16,
+        "separate-outputs": true,
+        "rewrite": {
+            "(.*) — Mozilla Firefox": "$1",
+            "(.*) - Visual Studio Code": "$1"
+        }
+    },
+    "custom/close": {
+        "format": "󰅖",
+        "tooltip-format": "Zamknij okno (Super + Q)",
+        "on-click": "hyprctl dispatch 'hl.dsp.window.close()'"
     },
     "clock": {
         "format": "󰅐  {:%H:%M}",

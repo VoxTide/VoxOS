@@ -68,7 +68,7 @@ themes/<motyw>/     wygląd: hypr.lua, waybar, rofi, mako, kitty, hyprlock, tape
 | `Super + Enter` | terminal |
 | `Super + D` | launcher aplikacji |
 | `Super + E` | menedżer plików |
-| `Super + Q` | zamknij okno |
+| `Super + Q` albo X przy tytule okna na pasku | zamknij okno |
 | `Super + F` | pełny ekran |
 | `Super + Spacja` | okno pływające |
 | `Super + L` | blokada ekranu |

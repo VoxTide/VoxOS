@@ -70,3 +70,17 @@ tooltip {
     border-radius: 8px;
 }
 tooltip label { color: @nord4; }
+
+/* Aktywne okno: tytuł + przycisk zamykania w jednej pigułce */
+#active {
+    background: alpha(@nord0, 0.92);
+    border: 1px solid @nord1;
+    border-radius: 10px;
+    margin: 2px 0;
+}
+#window       { color: @nord4; padding: 0 6px 0 12px; }
+#custom-close { color: @nord3; padding: 0 12px 0 6px; font-size: 14px; }
+#custom-close:hover { color: @nord11; }
+
+/* Pusty pulpit: chowamy tytuł i X */
+window#waybar.empty #active { opacity: 0; }

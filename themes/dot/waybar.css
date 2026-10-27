@@ -74,3 +74,17 @@ tooltip {
     border-radius: 14px;
 }
 tooltip label { color: @text; font-family: "Space Mono"; }
+
+/* Aktywne okno: tytuł + przycisk zamykania w jednej pigułce */
+#active {
+    background: @black;
+    border: 1px solid @line;
+    border-radius: 19px;
+    margin: 2px 0;
+}
+#window       { color: @grey; padding: 0 6px 0 14px; }
+#custom-close { color: @dim; padding: 0 14px 0 6px; font-family: "JetBrainsMono Nerd Font"; font-size: 14px; }
+#custom-close:hover { color: @red; }
+
+/* Pusty pulpit: chowamy tytuł i X */
+window#waybar.empty #active { opacity: 0; }
