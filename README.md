@@ -59,6 +59,7 @@ hosts/<host>/
   hypr-host.lua     monitory, jasność, touchpad (Lua)
 dotfiles/           wspólna konfiguracja linkowana do ~ przez GNU Stow
 themes/<motyw>/     wygląd: hypr.lua, waybar, rofi, mako, kitty, hyprlock, tapeta
+boot/splash.bmp     logo VoxOS przy starcie
 ```
 
 ## Najważniejsze skróty
@@ -90,7 +91,7 @@ themes/<motyw>/     wygląd: hypr.lua, waybar, rofi, mako, kitty, hyprlock, tape
 ## Wygoda na co dzień
 
 - **Logowanie**: przy `AUTOLOGIN=true` w `host.conf` laptop startuje prosto do Hyprlanda i od razu pokazuje ekran blokady motywu (ten sam co `Super + L`), więc hasło jest wymagane, a ekran logowania wygląda jak reszta systemu (`voxos-session-lock`, log w `$XDG_RUNTIME_DIR/voxos-session-lock.log`). `AUTOLOGIN=false` + `bash install.sh` przywraca zwykły ekran SDDM.
-- **Cichy start**: przy `QUIET_BOOT=true` nie widać menu startowego ani przewijających się komunikatów. Menu systemd-boot pokażesz, **przytrzymując Spację** zaraz po logo HP.
+- **Cichy start**: przy `QUIET_BOOT=true` nie widać menu startowego ani przewijających się komunikatów, a zamiast logo Archa pojawia się logo VoxOS (`boot/splash.bmp`). Działa ze zwykłymi wpisami systemd-boot i z UKI (`/etc/kernel/cmdline` + preset mkinitcpio). Menu systemd-boot pokażesz, **przytrzymując Spację** zaraz po logo HP.
 - **OSD**: przy zmianie głośności i jasności pojawia się okienko z paskiem (`voxos-osd`).
 - **Bateria**: ostrzeżenie przy 20% i alarm przy 10% (`voxos-battery`, timer systemd co 2 minuty).
 - **Aktualizacje**: licznik na pasku, gdy są nowe pakiety. Kliknięcie otwiera terminal z aktualizacją.

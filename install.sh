@@ -236,25 +236,59 @@ elif [[ -f $AUTOLOGIN_CONF ]]; then
     sudo rm -f "$AUTOLOGIN_CONF"
 fi
 
-# --- Cichy start: bez menu systemd-boot i bez przewijających się komunikatów ------
+# --- Cichy start: bez menu, bez komunikatów, logo VoxOS zamiast logo Archa --------
+# Obsługuje oba układy systemd-boot: zwykłe wpisy (loader/entries) oraz UKI
+# (jądro w jednym pliku .efi, parametry w /etc/kernel/cmdline, logo w presecie mkinitcpio).
 if [[ $QUIET_BOOT == true ]] && command -v bootctl >/dev/null 2>&1; then
     esp="$(bootctl --print-esp-path 2>/dev/null || echo /boot)"
+    quiet_params=(quiet loglevel=3 systemd.show_status=auto rd.systemd.show_status=auto rd.udev.log_level=3 vt.global_cursor_default=0)
+    rebuild_uki=false
+    info "Cichy start: ukrywam menu i komunikaty (menu startowe: przytrzymaj Spację po logo HP)"
+
+    # Menu systemd-boot bez odliczania
     if sudo test -f "$esp/loader/loader.conf"; then
-        info "Cichy start: ukrywam menu startowe i komunikaty jądra (menu: przytrzymaj Spację przy starcie)"
         if sudo grep -q '^timeout' "$esp/loader/loader.conf"; then
             sudo sed -i 's/^timeout.*/timeout 0/' "$esp/loader/loader.conf"
         else
             echo 'timeout 0' | sudo tee -a "$esp/loader/loader.conf" >/dev/null
         fi
-        quiet_params=(quiet loglevel=3 systemd.show_status=auto rd.systemd.show_status=auto rd.udev.log_level=3 vt.global_cursor_default=0)
-        while IFS= read -r entry; do
-            for p in "${quiet_params[@]}"; do
-                sudo grep -Eq "^options.*(^|[[:space:]])${p}([[:space:]]|$)" "$entry" \
-                    || sudo sed -i "/^options /s/\$/ ${p}/" "$entry"
-            done
-        done < <(sudo find "$esp/loader/entries" -name '*.conf' 2>/dev/null)
-    else
-        warn "Nie znalazłem konfiguracji systemd-boot w $esp - pomijam cichy start"
+    fi
+
+    # Układ 1: zwykłe wpisy systemd-boot
+    while IFS= read -r entry; do
+        for p in "${quiet_params[@]}"; do
+            sudo grep -Eq "^options.*(^|[[:space:]])${p}([[:space:]]|$)" "$entry" \
+                || sudo sed -i "/^options /s/\$/ ${p}/" "$entry"
+        done
+    done < <(sudo find "$esp/loader/entries" -name '*.conf' 2>/dev/null)
+
+    # Układ 2: UKI - parametry jądra w /etc/kernel/cmdline
+    if [[ -f /etc/kernel/cmdline ]]; then
+        for p in "${quiet_params[@]}"; do
+            if ! grep -Eq "(^|[[:space:]])${p}([[:space:]]|$)" /etc/kernel/cmdline; then
+                sudo sed -i "1s/\$/ ${p}/" /etc/kernel/cmdline
+                rebuild_uki=true
+            fi
+        done
+    fi
+
+    # Logo VoxOS zamiast logo Archa (UKI pokazuje obrazek z opcji --splash)
+    splash=/usr/share/voxos/splash.bmp
+    if ! sudo cmp -s "$REPO_DIR/boot/splash.bmp" "$splash"; then
+        sudo install -Dm644 "$REPO_DIR/boot/splash.bmp" "$splash"
+        rebuild_uki=true
+    fi
+    for preset in /etc/mkinitcpio.d/*.preset; do
+        [[ -f $preset ]] || continue
+        if grep -q -- '--splash' "$preset" && ! grep -q -- "--splash $splash" "$preset"; then
+            sudo sed -i -E "s#--splash[[:space:]]+[^\" ]+#--splash $splash#g" "$preset"
+            rebuild_uki=true
+        fi
+    done
+
+    if [[ $rebuild_uki == true ]] && compgen -G "/etc/mkinitcpio.d/*.preset" >/dev/null; then
+        info "Przebudowuję obraz startowy (mkinitcpio -P), to potrwa chwilę"
+        sudo mkinitcpio -P || warn "mkinitcpio zgłosił problem - sprawdź komunikaty powyżej przed restartem"
     fi
 fi
 
