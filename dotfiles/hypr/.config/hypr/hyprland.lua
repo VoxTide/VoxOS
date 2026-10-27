@@ -13,7 +13,7 @@ local mainMod     = "SUPER"
 
 hl.on("hyprland.start", function()
     -- Przy autologinie (install.sh, AUTOLOGIN=true) ekran blokady motywu pełni rolę ekranu logowania
-    hl.exec_cmd("[ -f /etc/sddm.conf.d/voxos-autologin.conf ] && hyprlock")
+    hl.exec_cmd("bash ~/.local/bin/voxos-session-lock")
     hl.exec_cmd("waybar")
     hl.exec_cmd("mako")
     hl.exec_cmd("swaybg -i ~/.config/voxos/current/wallpaper.jpg -m fill -c '#000000'")

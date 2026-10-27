@@ -62,6 +62,7 @@ ENABLE_MULTILIB=false
 SNAPPER=false
 THEME=nord
 AUTOLOGIN=false
+QUIET_BOOT=false
 # shellcheck source=/dev/null
 source "$HOST_DIR/host.conf"
 
@@ -233,6 +234,28 @@ if [[ $AUTOLOGIN == true ]]; then
 elif [[ -f $AUTOLOGIN_CONF ]]; then
     info "Wyłączam autologin (AUTOLOGIN=false)"
     sudo rm -f "$AUTOLOGIN_CONF"
+fi
+
+# --- Cichy start: bez menu systemd-boot i bez przewijających się komunikatów ------
+if [[ $QUIET_BOOT == true ]] && command -v bootctl >/dev/null 2>&1; then
+    esp="$(bootctl --print-esp-path 2>/dev/null || echo /boot)"
+    if sudo test -f "$esp/loader/loader.conf"; then
+        info "Cichy start: ukrywam menu startowe i komunikaty jądra (menu: przytrzymaj Spację przy starcie)"
+        if sudo grep -q '^timeout' "$esp/loader/loader.conf"; then
+            sudo sed -i 's/^timeout.*/timeout 0/' "$esp/loader/loader.conf"
+        else
+            echo 'timeout 0' | sudo tee -a "$esp/loader/loader.conf" >/dev/null
+        fi
+        quiet_params=(quiet loglevel=3 systemd.show_status=auto rd.systemd.show_status=auto rd.udev.log_level=3 vt.global_cursor_default=0)
+        while IFS= read -r entry; do
+            for p in "${quiet_params[@]}"; do
+                sudo grep -Eq "^options.*(^|[[:space:]])${p}([[:space:]]|$)" "$entry" \
+                    || sudo sed -i "/^options /s/\$/ ${p}/" "$entry"
+            done
+        done < <(sudo find "$esp/loader/entries" -name '*.conf' 2>/dev/null)
+    else
+        warn "Nie znalazłem konfiguracji systemd-boot w $esp - pomijam cichy start"
+    fi
 fi
 
 # --- Firewall ------------------------------------------------------------------
