@@ -1,0 +1,97 @@
+/* VoxOS - launcher i menu (rofi), motyw Nord */
+configuration {
+    modi: "drun,run";
+    show-icons: true;
+    icon-theme: "Papirus-Dark";
+    display-drun: "󰀻";
+    display-run: "";
+    drun-display-format: "{name}";
+    font: "JetBrainsMono Nerd Font 11";
+}
+
+* {
+    nord0: #2E3440;
+    nord1: #3B4252;
+    nord2: #434C5E;
+    nord3: #4C566A;
+    nord4: #D8DEE9;
+    nord8: #88C0D0;
+    nord11: #BF616A;
+
+    background-color: transparent;
+    text-color: @nord4;
+}
+
+window {
+    width: 600px;
+    background-color: #2E3440F2;
+    border: 2px;
+    border-color: @nord8;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+mainbox {
+    spacing: 12px;
+    children: [ inputbar, listview ];
+}
+
+inputbar {
+    background-color: @nord1;
+    border-radius: 8px;
+    padding: 10px 14px;
+    spacing: 12px;
+    children: [ prompt, entry ];
+}
+
+prompt {
+    text-color: @nord8;
+}
+
+entry {
+    placeholder: "Szukaj...";
+    placeholder-color: @nord3;
+    cursor: text;
+}
+
+listview {
+    lines: 8;
+    columns: 1;
+    spacing: 4px;
+    scrollbar: false;
+    fixed-height: false;
+}
+
+element {
+    padding: 8px 12px;
+    border-radius: 8px;
+    spacing: 12px;
+    cursor: pointer;
+}
+
+element normal.normal,
+element alternate.normal {
+    background-color: transparent;
+    text-color: @nord4;
+}
+
+element selected.normal {
+    background-color: @nord2;
+    text-color: @nord8;
+}
+
+element normal.urgent,
+element selected.urgent {
+    text-color: @nord11;
+}
+
+element-icon {
+    size: 22px;
+    cursor: inherit;
+}
+
+element-text {
+    vertical-align: 0.5;
+    text-color: inherit;
+    cursor: inherit;
+}

@@ -21,6 +21,7 @@ waybar                        # pasek
 rofi                          # launcher aplikacji
 kitty                         # terminal
 mako                          # powiadomienia
+libnotify                     # notify-send (powiadomienia ze skryptów)
 swaybg                        # tło (na start jednolity kolor)
 sddm                          # ekran logowania
 xorg-server                   # SDDM rysuje ekran logowania przez X11
@@ -45,6 +46,10 @@ network-manager-applet
 # Aplikacje
 thunar
 firefox
+
+# Wygląd (motyw Nord): ciemny GTK i ikony
+gnome-themes-extra            # Adwaita-dark dla aplikacji GTK3
+papirus-icon-theme            # ikony Papirus-Dark
 
 # Czcionki
 ttf-jetbrains-mono-nerd

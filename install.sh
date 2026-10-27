@@ -57,6 +57,7 @@ SERVICES=()
 MASK_SERVICES=()
 ENABLE_MULTILIB=false
 SNAPPER=false
+THEME=nord
 # shellcheck source=/dev/null
 source "$HOST_DIR/host.conf"
 
@@ -100,7 +101,7 @@ if (( ${#aur_pkgs[@]} > 0 )); then
         rm -rf "$tmp"
     fi
     info "Instaluję ${#aur_pkgs[@]} pakietów z AUR"
-    yay -S --needed "${aur_pkgs[@]}"
+    yay -S --needed "${aur_pkgs[@]}" || warn "Część pakietów z AUR się nie zainstalowała - reszta instalacji idzie dalej"
 fi
 
 # --- Migawki przy aktualizacjach (snapper + snap-pac) ------------------------------
@@ -124,9 +125,33 @@ for dir in "$DOTFILES"/*/; do
     stow --no-folding --restow -d "$DOTFILES" -t "$HOME" "$pkg"
 done
 
+info "Odświeżam pamięć czcionek"
+fc-cache -f >/dev/null
+
 info "Podpinam konfigurację Hyprlanda dla hosta $HOST"
 mkdir -p "$HOME/.config/hypr"
 ln -sfn "$HOST_DIR/hypr-host.lua" "$HOME/.config/hypr/host.lua"
+
+# Motyw VoxOS: zostaje aktualny, a przy pierwszej instalacji bierzemy THEME z host.conf
+theme="$THEME"
+if [[ -L $HOME/.config/voxos/current ]]; then
+    current="$(basename "$(readlink -f "$HOME/.config/voxos/current")")"
+    [[ -d $REPO_DIR/themes/$current ]] && theme="$current"
+fi
+info "Ustawiam motyw: $theme (zmiana później: voxos-theme albo Super + T)"
+bash "$DOTFILES/scripts/.local/bin/voxos-theme" "$theme"
+
+# Ciemny motyw aplikacji GTK/libadwaita (Firefox, Thunar, okna dialogowe)
+if command -v gsettings >/dev/null 2>&1; then
+    info "Ustawiam ciemny motyw aplikacji, ikony Papirus i kursor Bibata"
+    {
+        gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' &&
+        gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark' &&
+        gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark' &&
+        gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice' &&
+        gsettings set org.gnome.desktop.interface cursor-size 24
+    } || warn "Nie udało się ustawić motywu przez gsettings (uruchom instalator z poziomu Hyprlanda)"
+fi
 
 # Foldery domowe (Obrazy, Pobrane itd.) w języku systemu
 xdg-user-dirs-update

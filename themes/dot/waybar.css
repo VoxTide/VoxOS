@@ -1,0 +1,76 @@
+/* VoxOS - pasek, motyw "dot": czerń, biel, szarości i jeden czerwony akcent */
+@define-color black #000000;
+@define-color surface #0F0F0F;
+@define-color line #262626;
+@define-color dim #5A5A5A;
+@define-color grey #8A8A8A;
+@define-color text #EDEDED;
+@define-color red #D71921;
+
+* {
+    font-family: "Space Mono", "JetBrainsMono Nerd Font", monospace;
+    font-size: 13px;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+window#waybar {
+    background: transparent;
+    color: @text;
+}
+
+#custom-dot, #workspaces, #clock, #backlight, #pulseaudio,
+#network, #battery, #tray, #custom-power {
+    background: @black;
+    border: 1px solid @line;
+    border-radius: 19px;
+    padding: 0 14px;
+    margin: 2px 0;
+}
+
+/* Czerwona kropka na start, czerwony przycisk zasilania na koniec */
+#custom-dot   { color: @red; font-family: "JetBrainsMono Nerd Font"; font-size: 14px; padding: 0 13px; }
+#custom-power { color: @red; font-family: "JetBrainsMono Nerd Font"; font-size: 15px; padding: 0 15px 0 13px; }
+
+/* Pulpity jako kropki */
+#workspaces { padding: 0 6px; }
+#workspaces button {
+    font-family: "JetBrainsMono Nerd Font";
+    font-size: 12px;
+    color: @dim;
+    padding: 0 5px;
+    margin: 4px 1px;
+    background: transparent;
+    border-radius: 12px;
+}
+#workspaces button:hover  { color: @text; background: @surface; }
+#workspaces button.active { color: @text; }
+#workspaces button.urgent { color: @red; }
+
+/* Zegar z kropek */
+#clock {
+    font-family: "VoxDot";
+    font-weight: bold;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: @text;
+    padding: 0 20px;
+}
+
+#backlight, #pulseaudio, #network, #battery { color: @grey; }
+#backlight:hover, #pulseaudio:hover, #network:hover, #battery:hover { color: @text; }
+#pulseaudio.muted            { color: @dim; }
+#network.disconnected        { color: @red; }
+#battery.charging, #battery.plugged { color: @text; }
+#battery.warning:not(.charging)  { color: @text; border-color: @grey; }
+#battery.critical:not(.charging) { color: @red; border-color: @red; }
+
+#tray > .needs-attention { background: @red; }
+
+tooltip {
+    background: @black;
+    border: 1px solid @line;
+    border-radius: 14px;
+}
+tooltip label { color: @text; font-family: "Space Mono"; }

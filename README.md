@@ -2,6 +2,25 @@
 
 Mój Arch Linux z Hyprlandem, skrojony pod mnie. Jeden skrypt stawia cały system od zera.
 
+## Motywy
+
+| Motyw | Styl |
+|-------|------|
+| `nord` | [Nord](https://www.nordtheme.com): chłodne szaroniebieskie barwy, zorza nad górami |
+| `dot` | monochromatyczny: czerń, biel i szarości z jednym czerwonym akcentem, zegar z kropek (font VoxDot), tapeta z półtonowej kuli |
+
+Każdy motyw obejmuje: kolory okien Hyprlanda, pasek Waybar, rofi, powiadomienia mako, kolory terminala kitty, ekran blokady i tapetę. Wspólne dla obu: ciemne aplikacje GTK (Adwaita-dark), ikony Papirus-Dark, kursor Bibata-Modern-Ice.
+
+```bash
+voxos-theme          # menu wyboru (też Super + T)
+voxos-theme dot      # od razu przełącz
+voxos-theme --list   # dostępne motywy
+```
+
+Przełączenie podmienia jeden symlink `~/.config/voxos/current -> themes/<motyw>` i przeładowuje Hyprlanda, pasek, tapetę, powiadomienia i terminale. Wybór przetrwa restart i ponowne uruchomienie `install.sh`.
+
+Nowy motyw: skopiuj `themes/nord` pod nową nazwą i zmień pliki. Tapety generują skrypty `themes/<motyw>/generate-wallpaper.py`.
+
 ## Hosty
 
 | Host | Sprzęt | Status |
@@ -38,7 +57,8 @@ hosts/<host>/
   host.conf         grupy pakietów, usługi
   packages.txt      sterowniki i pakiety tylko dla tego sprzętu
   hypr-host.lua     monitory, jasność, touchpad (Lua)
-dotfiles/           konfiguracja linkowana do ~ przez GNU Stow
+dotfiles/           wspólna konfiguracja linkowana do ~ przez GNU Stow
+themes/<motyw>/     wygląd: hypr.lua, waybar, rofi, mako, kitty, hyprlock, tapeta
 ```
 
 ## Najważniejsze skróty
@@ -58,6 +78,7 @@ dotfiles/           konfiguracja linkowana do ~ przez GNU Stow
 | `Print` | zrzut zaznaczenia do schowka |
 | `Shift + Print` | zrzut ekranu do Obrazy/Zrzuty |
 | `Super + Escape` | menu zasilania (blokada, wyloguj, uśpij, restart, wyłącz) |
+| `Super + T` | wybór motywu |
 | `Super + Shift + E` | wyloguj |
 
 ## Migawki (snapper + snap-pac)

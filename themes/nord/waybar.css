@@ -1,0 +1,72 @@
+/* VoxOS - pasek, motyw Nord (https://www.nordtheme.com) */
+@define-color nord0  #2E3440;
+@define-color nord1  #3B4252;
+@define-color nord2  #434C5E;
+@define-color nord3  #4C566A;
+@define-color nord4  #D8DEE9;
+@define-color nord6  #ECEFF4;
+@define-color nord7  #8FBCBB;
+@define-color nord8  #88C0D0;
+@define-color nord9  #81A1C1;
+@define-color nord11 #BF616A;
+@define-color nord13 #EBCB8B;
+@define-color nord14 #A3BE8C;
+@define-color nord15 #B48EAD;
+
+* {
+    font-family: "JetBrainsMono Nerd Font", sans-serif;
+    font-size: 13px;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+window#waybar {
+    background: transparent;
+    color: @nord4;
+}
+
+/* Każdy moduł jako zaokrąglona "pigułka" */
+#custom-arch, #workspaces, #clock, #backlight, #pulseaudio,
+#network, #battery, #tray, #custom-power {
+    background: alpha(@nord0, 0.92);
+    border: 1px solid @nord1;
+    border-radius: 10px;
+    padding: 0 12px;
+    margin: 2px 0;
+}
+
+#custom-arch  { color: @nord8; font-size: 16px; padding: 0 14px 0 12px; }
+#custom-power { color: @nord11; font-size: 15px; padding: 0 14px 0 12px; }
+
+#workspaces { padding: 0 4px; }
+#workspaces button {
+    color: @nord3;
+    padding: 0 8px;
+    margin: 4px 2px;
+    border-radius: 7px;
+    background: transparent;
+}
+#workspaces button:hover  { background: @nord1; color: @nord4; }
+#workspaces button.active { background: @nord8; color: @nord0; }
+#workspaces button.urgent { background: @nord11; color: @nord6; }
+
+#clock      { color: @nord8; font-weight: bold; }
+#backlight  { color: @nord13; }
+#pulseaudio { color: @nord9; }
+#pulseaudio.muted { color: @nord3; }
+#network    { color: @nord7; }
+#network.disconnected { color: @nord11; }
+#battery    { color: @nord14; }
+#battery.charging, #battery.plugged { color: @nord14; }
+#battery.warning:not(.charging)  { color: @nord13; }
+#battery.critical:not(.charging) { color: @nord11; font-weight: bold; }
+
+#tray > .needs-attention { background: @nord11; }
+
+tooltip {
+    background: @nord0;
+    border: 1px solid @nord8;
+    border-radius: 8px;
+}
+tooltip label { color: @nord4; }

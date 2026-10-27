@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# VoxOS - przełączanie motywów
+# Użycie:
+#   voxos-theme              menu wyboru (rofi), też pod Super + T
+#   voxos-theme <nazwa>      od razu przełącza, np. voxos-theme dot
+#   voxos-theme --list       lista motywów
+#   voxos-theme --no-reload <nazwa>   tylko symlinki, bez przeładowania sesji (używa instalator)
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../../.." && pwd)"
+THEMES="$REPO/themes"
+STATE="$HOME/.config/voxos"
+CURRENT="$STATE/current"
+
+reload=true
+case "${1:-}" in
+    --list)      ls "$THEMES"; exit 0 ;;
+    --no-reload) reload=false; shift ;;
+esac
+
+current_name() { basename "$(readlink -f "$CURRENT" 2>/dev/null)" 2>/dev/null || true; }
+
+name="${1:-}"
+if [[ -z $name ]]; then
+    now="$(current_name)"
+    name=$(ls "$THEMES" | rofi -dmenu -i -no-custom -p "Motyw" -mesg "Teraz: ${now:-brak}" \
+        -theme-str 'window { width: 320px; } listview { lines: 4; }') || exit 0
+fi
+
+if [[ ! -d $THEMES/$name ]]; then
+    echo "Nie ma motywu '$name'. Dostępne: $(ls "$THEMES" | tr '\n' ' ')" >&2
+    exit 1
+fi
+
+mkdir -p "$STATE"
+ln -sfn "$THEMES/$name" "$CURRENT"
+
+# link <plik w motywie> <miejsce w systemie>
+# Jeśli w tym miejscu leży zwykły plik (nie symlink), trafia do kopii .bak
+link() {
+    local src="$CURRENT/$1" dst="$2"
+    mkdir -p "$(dirname "$dst")"
+    if [[ -e $dst && ! -L $dst ]]; then
+        mv "$dst" "$dst.bak.$(date +%Y%m%d-%H%M%S)"
+    fi
+    ln -sfn "$src" "$dst"
+}
+
+link hypr.lua      "$HOME/.config/hypr/theme.lua"
+link hyprlock.conf "$HOME/.config/hypr/hyprlock.conf"
+link waybar.jsonc  "$HOME/.config/waybar/config.jsonc"
+link waybar.css    "$HOME/.config/waybar/style.css"
+link rofi.rasi     "$HOME/.config/rofi/config.rasi"
+link mako.conf     "$HOME/.config/mako/config"
+link kitty.conf    "$HOME/.config/kitty/theme.conf"
+
+echo "Motyw: $name"
+
+# Przeładowanie działającej sesji (tylko wewnątrz Hyprlanda)
+$reload || exit 0
+[[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] || exit 0
+
+hyprctl reload >/dev/null 2>&1 || true
+pkill -x swaybg || true
+setsid -f swaybg -i "$CURRENT/wallpaper.jpg" -m fill -c '#000000' >/dev/null 2>&1
+pkill -x waybar || true
+setsid -f waybar >/dev/null 2>&1
+makoctl reload >/dev/null 2>&1 || true
+pkill -USR1 -x kitty || true    # kitty przeładowuje config po sygnale USR1
+command -v notify-send >/dev/null && notify-send "VoxOS" "Motyw: $name" || true

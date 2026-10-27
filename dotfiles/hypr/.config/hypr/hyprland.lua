@@ -1,4 +1,4 @@
--- VoxOS - główna konfiguracja Hyprlanda (wspólna dla wszystkich hostów)
+-- VoxOS - główna konfiguracja Hyprlanda (wspólna dla wszystkich hostów i motywów)
 -- Format Lua (Hyprland 0.55+). Dokumentacja: https://wiki.hypr.land/Configuring/Start/
 -- Ustawienia konkretnego sprzętu (monitory, jasność, touchpad) są w host.lua
 
@@ -14,7 +14,7 @@ local mainMod     = "SUPER"
 hl.on("hyprland.start", function()
     hl.exec_cmd("waybar")
     hl.exec_cmd("mako")
-    hl.exec_cmd("swaybg -c '#1e1e2e'")
+    hl.exec_cmd("swaybg -i ~/.config/voxos/current/wallpaper.jpg -m fill -c '#000000'")
     hl.exec_cmd("hypridle")
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("nm-applet --indicator")
@@ -22,7 +22,10 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("wl-paste --type image --watch cliphist store")
 end)
 
+-- Kursor Bibata (motyw ustawiany też dla GTK w ~/.config/gtk-*/settings.ini)
+hl.env("XCURSOR_THEME", "Bibata-Modern-Ice")
 hl.env("XCURSOR_SIZE", "24")
+hl.env("HYPRCURSOR_THEME", "Bibata-Modern-Ice")
 hl.env("HYPRCURSOR_SIZE", "24")
 
 ---------------
@@ -31,18 +34,7 @@ hl.env("HYPRCURSOR_SIZE", "24")
 
 hl.config({
     general = {
-        gaps_in     = 4,
-        gaps_out    = 8,
-        border_size = 2,
-        col = {
-            active_border   = { colors = { "rgba(89b4faee)", "rgba(a6e3a1ee)" }, angle = 45 },
-            inactive_border = "rgba(45475aaa)",
-        },
         layout = "dwindle",
-    },
-
-    decoration = {
-        rounding = 8,
     },
 
     animations = {
@@ -54,6 +46,13 @@ hl.config({
         disable_splash_rendering = true,
     },
 })
+
+-- Kolory, ramki, cienie i rozmycie pochodzą z aktywnego motywu VoxOS
+-- (theme.lua to symlink do themes/<motyw>/hypr.lua, przełączany przez voxos-theme)
+local themeOk, themeErr = pcall(require, "theme")
+if not themeOk then
+    print("VoxOS: nie wczytano theme.lua: " .. tostring(themeErr))
+end
 
 ------------------------------
 ---- KLAWIATURA I TOUCHPAD ----
@@ -82,6 +81,7 @@ hl.bind(mainMod .. " + F",      hl.dsp.window.fullscreen())
 hl.bind(mainMod .. " + Space",  hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + L",      hl.dsp.exec_cmd("hyprlock"))
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-power"))
+hl.bind(mainMod .. " + T",      hl.dsp.exec_cmd("bash ~/.local/bin/voxos-theme"))
 hl.bind(mainMod .. " + V",      hl.dsp.exec_cmd("cliphist list | rofi -dmenu | cliphist decode | wl-copy"))
 
 -- Zrzuty ekranu: Print = zaznaczenie do schowka, Shift+Print = cały ekran do pliku

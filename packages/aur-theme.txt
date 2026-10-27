@@ -1,0 +1,2 @@
+# Wygląd z AUR (instalowane przez yay)
+bibata-cursor-theme           # kursor Bibata-Modern-Ice
