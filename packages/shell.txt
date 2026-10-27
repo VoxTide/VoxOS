@@ -1,0 +1,8 @@
+# Lepszy terminal
+starship                      # prompt w kolorach motywu
+fzf                           # Ctrl+R historia, Ctrl+T pliki
+zoxide                        # z <folder> - skakanie po folderach
+eza                           # kolorowe ls z ikonami
+bat                           # kolorowy cat
+fastfetch                     # informacje o systemie
+bash-completion               # podpowiedzi Tab dla komend

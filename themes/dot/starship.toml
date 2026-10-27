@@ -1,0 +1,30 @@
+# VoxOS - prompt terminala (starship), motyw "dot"
+add_newline = true
+format = "$directory$git_branch$git_status$python$cmd_duration$line_break$character"
+
+[directory]
+style = "bold #EDEDED"
+truncation_length = 4
+truncation_symbol = "…/"
+home_symbol = "~"
+
+[git_branch]
+symbol = " "
+style = "#8A8A8A"
+format = "[$symbol$branch]($style) "
+
+[git_status]
+style = "#D71921"
+
+[python]
+style = "#8A8A8A"
+format = "[$symbol$virtualenv]($style) "
+
+[cmd_duration]
+min_time = 3000
+style = "#5A5A5A"
+format = "[$duration]($style) "
+
+[character]
+success_symbol = "[󰧞](#EDEDED)"
+error_symbol = "[󰧞](bold #D71921)"

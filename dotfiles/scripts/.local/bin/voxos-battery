@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# VoxOS - ostrzeżenie o słabej baterii (uruchamiane co 2 minuty przez voxos-battery.timer)
+# 20% = ostrzeżenie, 10% = alarm krytyczny. Każde pokazuje się raz na rozładowanie.
+set -u
+bat="$(ls -d /sys/class/power_supply/BAT* 2>/dev/null | head -1)"
+[[ -n $bat ]] || exit 0                      # komputer bez baterii (desktop)
+
+cap="$(cat "$bat/capacity")"
+status="$(cat "$bat/status")"
+state="${XDG_RUNTIME_DIR:-/tmp}/voxos-battery.level"
+last="$(cat "$state" 2>/dev/null || echo 100)"
+
+if [[ $status != Discharging ]]; then
+    echo 100 > "$state"; exit 0              # ładuje się - zerujemy alarmy
+fi
+
+if (( cap <= 10 && last > 10 )); then
+    notify-send -u critical -a voxos-battery "󰂃  Bateria ${cap}%" "Podłącz ładowarkę - zaraz się wyłączy"
+    echo "$cap" > "$state"
+elif (( cap <= 20 && last > 20 )); then
+    notify-send -u normal -a voxos-battery "󰁻  Bateria ${cap}%" "Słaba bateria"
+    echo "$cap" > "$state"
+fi

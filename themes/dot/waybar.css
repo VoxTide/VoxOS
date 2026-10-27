@@ -88,3 +88,13 @@ tooltip label { color: @text; font-family: "Space Mono"; }
 
 /* Pusty pulpit: chowamy tytuł i X */
 window#waybar.empty #active { opacity: 0; }
+
+/* Licznik aktualizacji (widoczny tylko, gdy są aktualizacje) */
+#custom-updates {
+    background: @black;
+    border: 1px solid @red;
+    border-radius: 19px;
+    padding: 0 14px;
+    margin: 2px 0;
+    color: @text;
+}

@@ -15,6 +15,7 @@
         "clock"
     ],
     "modules-right": [
+        "custom/updates",
         "backlight",
         "pulseaudio",
         "network",
@@ -144,5 +145,13 @@
         "format": "󰐥",
         "tooltip": false,
         "on-click": "bash ~/.local/bin/voxos-power"
+    },
+    "custom/updates": {
+        "exec": "bash ~/.local/bin/voxos-updates",
+        "return-type": "json",
+        "interval": 1800,
+        "format": "󰚰 {}",
+        "on-click": "kitty --title Aktualizacja sh -c 'yay -Syu; pkill -RTMIN+8 waybar; echo; read -rp \"Enter zamyka okno \"'",
+        "signal": 8
     }
 }

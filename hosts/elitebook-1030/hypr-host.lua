@@ -18,6 +18,6 @@ hl.config({
     },
 })
 
--- Klawisze jasności (z powtarzaniem, działają też na zablokowanym ekranie)
-hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl set 5%+"), { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"), { locked = true, repeating = true })
+-- Klawisze jasności z okienkiem OSD (z powtarzaniem, działają też na zablokowanym ekranie)
+hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("bash ~/.local/bin/voxos-osd brightness up"),   { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-osd brightness down"), { locked = true, repeating = true })

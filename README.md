@@ -40,8 +40,8 @@ Nowy motyw: skopiuj `themes/nord` pod nową nazwą i zmień pliki. Tapety generu
 
 ```bash
 sudo pacman -S git
-git clone https://github.com/VoxTide/voxos.git
-cd voxos
+git clone https://github.com/VoxTide/VoxOS.git ~/voxos
+cd ~/voxos
 bash install.sh
 sudo reboot
 ```
@@ -73,13 +73,29 @@ themes/<motyw>/     wygląd: hypr.lua, waybar, rofi, mako, kitty, hyprlock, tape
 | `Super + Spacja` | okno pływające |
 | `Super + L` | blokada ekranu |
 | `Super + V` | historia schowka |
+| `Super + strzałki` | fokus na sąsiednie okno |
+| `Super + Shift + strzałki` | przesuń okno |
+| `Super + Ctrl + strzałki` | zmień rozmiar okna |
 | `Super + 1-9` | przełącz pulpit |
 | `Super + Shift + 1-9` | przenieś okno na pulpit |
-| `Print` | zrzut zaznaczenia do schowka |
-| `Shift + Print` | zrzut ekranu do Obrazy/Zrzuty |
+| `Super + Tab` | poprzedni pulpit |
+| 3 palce w bok (touchpad) | zmiana pulpitu |
+| `Print` / `Shift + Print` | zrzut zaznaczenia / całego ekranu: plik w Obrazy/Zrzuty + schowek + powiadomienie |
+| `Super + N` | schowaj powiadomienia |
+| `Super + /` | ściągawka skrótów |
 | `Super + Escape` | menu zasilania (blokada, wyloguj, uśpij, restart, wyłącz) |
 | `Super + T` | wybór motywu |
 | `Super + Shift + E` | wyloguj |
+
+## Wygoda na co dzień
+
+- **OSD**: przy zmianie głośności i jasności pojawia się okienko z paskiem (`voxos-osd`).
+- **Bateria**: ostrzeżenie przy 20% i alarm przy 10% (`voxos-battery`, timer systemd co 2 minuty).
+- **Aktualizacje**: licznik na pasku, gdy są nowe pakiety. Kliknięcie otwiera terminal z aktualizacją.
+- **Nocne światło**: od 20:00 cieplejsze kolory, od 22:30 jeszcze cieplejsze, od 7:00 normalne (`~/.config/hypr/hyprsunset.conf`).
+- **Pliki**: miniatury, archiwa (Rozpakuj tutaj), kosz i pendrive'y montowane automatycznie. Zdjęcia: Loupe, PDF: Papers, wideo: mpv. Bluetooth: ikona w zasobniku.
+- **Okienka ustawień** (głośność, sieć, Bluetooth, archiwa) otwierają się jako pływające. Obraz w obrazie z Firefoksa jest widoczny na każdym pulpicie.
+- **Terminal**: prompt starship w kolorach motywu, `Ctrl+R` szukanie w historii (fzf), `z <folder>` skakanie po folderach (zoxide), `ls`/`ll`/`lt` z ikonami (eza), kolorowy `cat` (bat), `ff` = fastfetch, podpowiedzi Tab.
 
 ## Aktualizacja z pliku zip
 

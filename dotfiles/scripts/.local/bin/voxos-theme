@@ -53,6 +53,7 @@ link waybar.css    "$HOME/.config/waybar/style.css"
 link rofi.rasi     "$HOME/.config/rofi/config.rasi"
 link mako.conf     "$HOME/.config/mako/config"
 link kitty.conf    "$HOME/.config/kitty/theme.conf"
+link starship.toml "$HOME/.config/starship.toml"
 
 echo "Motyw: $name"
 

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# VoxOS - liczba dostępnych aktualizacji dla paska (JSON dla Waybara)
+# Pusty tekst = moduł ukryty. Kliknięcie na pasku otwiera terminal z aktualizacją.
+repo=$(checkupdates 2>/dev/null | wc -l)
+aur=$(yay -Qua 2>/dev/null | wc -l)
+total=$(( repo + aur ))
+if (( total == 0 )); then
+    echo '{"text": "", "tooltip": "System aktualny"}'
+else
+    printf '{"text": "%s", "tooltip": "Aktualizacje: %s z repozytoriów, %s z AUR\\nKliknij, aby zaktualizować", "class": "pending"}\n' \
+        "$total" "$repo" "$aur"
+fi

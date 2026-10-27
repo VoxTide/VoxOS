@@ -85,8 +85,25 @@ if [[ -f $HOST_DIR/packages.txt ]]; then
     mapfile -t -O "${#pkgs[@]}" pkgs < <(read_list "$HOST_DIR/packages.txt")
 fi
 
-info "Instaluję ${#pkgs[@]} pakietów (pacman)"
-sudo pacman -Syu --needed "${pkgs[@]}"
+info "Odświeżam bazy pakietów"
+sudo pacman -Sy
+
+# Nazwy, których nie ma w repozytoriach, pomijamy z ostrzeżeniem zamiast przerywać całą instalację
+known=()
+missing=()
+for p in "${pkgs[@]}"; do
+    if pacman -Si -- "$p" >/dev/null 2>&1 || pacman -Sg -- "$p" >/dev/null 2>&1; then
+        known+=("$p")
+    else
+        missing+=("$p")
+    fi
+done
+if (( ${#missing[@]} > 0 )); then
+    warn "Pomijam pakiety, których nie ma w repozytoriach: ${missing[*]}"
+fi
+
+info "Instaluję ${#known[@]} pakietów i aktualizuję system (pacman)"
+sudo pacman -Su --needed "${known[@]}"
 
 # --- Pakiety z AUR (przez yay) -------------------------------------------------
 aur_pkgs=()
@@ -158,6 +175,24 @@ if command -v gsettings >/dev/null 2>&1; then
         gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice' &&
         gsettings set org.gnome.desktop.interface cursor-size 24
     } || warn "Nie udało się ustawić motywu przez gsettings (uruchom instalator z poziomu Hyprlanda)"
+fi
+
+# Domyślne aplikacje dla zdjęć, PDF i wideo (tylko jeśli są zainstalowane)
+set_default() {
+    local desktop="$1"; shift
+    [[ -f /usr/share/applications/$desktop ]] || return 0
+    xdg-mime default "$desktop" "$@" 2>/dev/null || true
+}
+set_default org.gnome.Loupe.desktop  image/png image/jpeg image/gif image/webp image/bmp image/svg+xml
+set_default org.gnome.Papers.desktop application/pdf
+set_default mpv.desktop              video/mp4 video/x-matroska video/webm video/quicktime audio/mpeg audio/flac audio/ogg
+set_default thunar.desktop           inode/directory
+
+# Usługi użytkownika VoxOS (alarm baterii)
+if systemctl --user show-environment >/dev/null 2>&1; then
+    systemctl --user daemon-reload
+    systemctl --user enable --now voxos-battery.timer >/dev/null 2>&1 \
+        || warn "Nie udało się włączyć voxos-battery.timer"
 fi
 
 # Foldery domowe (Obrazy, Pobrane itd.) w języku systemu

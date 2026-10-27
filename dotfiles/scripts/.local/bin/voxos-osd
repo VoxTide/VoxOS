@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# VoxOS - zmiana głośności/jasności z okienkiem OSD (powiadomienie mako z paskiem postępu)
+# Użycie: voxos-osd volume up|down|mute | mic mute | brightness up|down
+set -u
+STEP=5
+STATE="${XDG_RUNTIME_DIR:-/tmp}/voxos-osd.id"
+
+notify() { # notify <ikona> <tekst> [wartość 0-100]
+    local id args=(-a voxos-osd -t 1500 -p)
+    id="$(cat "$STATE" 2>/dev/null || true)"
+    [[ -n $id ]] && args+=(-r "$id")
+    [[ -n ${3:-} ]] && args+=(-h "int:value:$3")
+    notify-send "${args[@]}" "$1  $2" > "$STATE" 2>/dev/null || true
+}
+
+volume_pct() { wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{ printf "%d", $2 * 100 }'; }
+is_muted()   { wpctl get-volume "$1" | grep -q MUTED; }
+
+case "${1:-} ${2:-}" in
+    "volume up")
+        wpctl set-mute @DEFAULT_AUDIO_SINK@ 0
+        wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ "${STEP}%+"
+        v=$(volume_pct); notify "󰕾" "Głośność ${v}%" "$v" ;;
+    "volume down")
+        wpctl set-volume @DEFAULT_AUDIO_SINK@ "${STEP}%-"
+        v=$(volume_pct); notify "󰖀" "Głośność ${v}%" "$v" ;;
+    "volume mute")
+        wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+        if is_muted @DEFAULT_AUDIO_SINK@; then notify "󰖁" "Wyciszono"
+        else v=$(volume_pct); notify "󰕾" "Głośność ${v}%" "$v"; fi ;;
+    "mic mute")
+        wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
+        if is_muted @DEFAULT_AUDIO_SOURCE@; then notify "󰍭" "Mikrofon wyłączony"
+        else notify "󰍬" "Mikrofon włączony"; fi ;;
+    "brightness up")
+        brightnessctl -q set "${STEP}%+"
+        b=$(brightnessctl -m | cut -d, -f4 | tr -d '%'); notify "󰃠" "Jasność ${b}%" "$b" ;;
+    "brightness down")
+        brightnessctl -q set "${STEP}%-"
+        b=$(brightnessctl -m | cut -d, -f4 | tr -d '%'); notify "󰃞" "Jasność ${b}%" "$b" ;;
+    *)
+        echo "Użycie: voxos-osd volume up|down|mute | mic mute | brightness up|down" >&2; exit 1 ;;
+esac

@@ -1,0 +1,6 @@
+[Unit]
+Description=VoxOS: ostrzeżenie o słabej baterii
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash %h/.local/bin/voxos-battery

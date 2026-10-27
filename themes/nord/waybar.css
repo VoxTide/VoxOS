@@ -84,3 +84,13 @@ tooltip label { color: @nord4; }
 
 /* Pusty pulpit: chowamy tytuł i X */
 window#waybar.empty #active { opacity: 0; }
+
+/* Licznik aktualizacji (widoczny tylko, gdy są aktualizacje) */
+#custom-updates {
+    background: alpha(@nord0, 0.92);
+    border: 1px solid @nord1;
+    border-radius: 10px;
+    padding: 0 12px;
+    margin: 2px 0;
+    color: @nord13;
+}

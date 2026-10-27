@@ -1,0 +1,16 @@
+# Pliki i aplikacje
+tumbler                       # miniatury w Thunarze
+ffmpegthumbnailer             # miniatury filmów
+thunar-archive-plugin         # "Rozpakuj tutaj" / "Spakuj" w menu Thunara
+thunar-volman                 # obsługa pendrive'ów w Thunarze
+file-roller                   # menedżer archiwów (zip, rar, 7z)
+gvfs                          # kosz, montowanie dysków, sieć w Thunarze
+udiskie                       # automatyczne montowanie pendrive'ów
+loupe                         # przeglądarka zdjęć
+papers                        # przeglądarka PDF
+mpv                           # odtwarzacz wideo i muzyki
+blueman                       # okno i ikona Bluetooth
+
+# Powiadomienia i ekran
+pacman-contrib                # checkupdates (licznik aktualizacji na pasku)
+hyprsunset                    # nocne światło

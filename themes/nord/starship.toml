@@ -1,0 +1,30 @@
+# VoxOS - prompt terminala (starship), motyw Nord
+add_newline = true
+format = "$directory$git_branch$git_status$python$cmd_duration$line_break$character"
+
+[directory]
+style = "bold #88C0D0"
+truncation_length = 4
+truncation_symbol = "…/"
+home_symbol = "~"
+
+[git_branch]
+symbol = " "
+style = "#B48EAD"
+format = "[$symbol$branch]($style) "
+
+[git_status]
+style = "#EBCB8B"
+
+[python]
+style = "#A3BE8C"
+format = "[$symbol$virtualenv]($style) "
+
+[cmd_duration]
+min_time = 3000
+style = "#4C566A"
+format = "[$duration]($style) "
+
+[character]
+success_symbol = "[❯](bold #A3BE8C)"
+error_symbol = "[❯](bold #BF616A)"
