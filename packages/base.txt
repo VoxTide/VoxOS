@@ -24,6 +24,7 @@ mako                          # powiadomienia
 libnotify                     # notify-send (powiadomienia ze skryptów)
 swaybg                        # tło (na start jednolity kolor)
 sddm                          # ekran logowania
+greetd                        # szybkie logowanie prosto do Hyprlanda (AUTOLOGIN=true)
 xorg-server                   # SDDM rysuje ekran logowania przez X11
 
 # Zrzuty ekranu i schowek

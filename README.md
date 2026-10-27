@@ -7,7 +7,7 @@ Mój Arch Linux z Hyprlandem, skrojony pod mnie. Jeden skrypt stawia cały syste
 | Motyw | Styl |
 |-------|------|
 | `nord` | [Nord](https://www.nordtheme.com): chłodne szaroniebieskie barwy, zorza nad górami |
-| `dot` | monochromatyczny: czerń, biel i szarości z jednym czerwonym akcentem, zegar z kropek (font VoxDot), tapeta z półtonowej kuli |
+| `dot` (domyślny) | monochromatyczny: czerń, biel i szarości z jednym czerwonym akcentem, zegar z kropek (font VoxDot), tapeta z półtonowej kuli |
 
 Każdy motyw obejmuje: kolory okien Hyprlanda, pasek Waybar, rofi, powiadomienia mako, kolory terminala kitty i promptu starship, kolory aplikacji GTK3/GTK4 (okienka głośności, sieci, Bluetooth, Thunar, Loupe, Papers), ekran blokady i tapetę. Wspólne dla obu: baza adw-gtk3-dark, ikony Papirus-Dark, kursor Bibata-Modern-Ice.
 
@@ -16,6 +16,8 @@ voxos-theme          # menu wyboru (też Super + T)
 voxos-theme dot      # od razu przełącz
 voxos-theme --list   # dostępne motywy
 ```
+
+Przy pierwszej instalacji motyw bierze się z `THEME=` w `hosts/<host>/host.conf`. Później obowiązuje ostatnio wybrany.
 
 Przełączenie podmienia jeden symlink `~/.config/voxos/current -> themes/<motyw>` i przeładowuje Hyprlanda, pasek, tapetę, powiadomienia i terminale. Wybór przetrwa restart i ponowne uruchomienie `install.sh`.
 
@@ -90,7 +92,7 @@ boot/splash.bmp     logo VoxOS przy starcie
 
 ## Wygoda na co dzień
 
-- **Logowanie**: przy `AUTOLOGIN=true` w `host.conf` laptop startuje prosto do Hyprlanda i od razu pokazuje ekran blokady motywu (ten sam co `Super + L`), więc hasło jest wymagane, a ekran logowania wygląda jak reszta systemu (`voxos-session-lock`, log w `$XDG_RUNTIME_DIR/voxos-session-lock.log`). `AUTOLOGIN=false` + `bash install.sh` przywraca zwykły ekran SDDM.
+- **Logowanie**: przy `AUTOLOGIN=true` w `host.conf` **greetd** uruchamia Hyprlanda od razu po starcie (bez serwera X, kilka sekund szybciej niż SDDM), a ekran blokady motywu (ten sam co `Super + L`) pełni rolę ekranu logowania, więc hasło jest wymagane (`voxos-session-lock`, log w `$XDG_RUNTIME_DIR/voxos-session-lock.log`). Wylogowanie wraca do tego samego ekranu blokady. `AUTOLOGIN=false` + `bash install.sh` przywraca klasyczny ekran SDDM. Awaryjnie: `Ctrl + Alt + F2`, zaloguj się i `sudo systemctl disable greetd && sudo systemctl enable sddm && sudo reboot`.
 - **Cichy start**: przy `QUIET_BOOT=true` nie widać menu startowego ani przewijających się komunikatów, a zamiast logo Archa pojawia się logo VoxOS (`boot/splash.bmp`). Działa ze zwykłymi wpisami systemd-boot i z UKI (`/etc/kernel/cmdline` + preset mkinitcpio). Menu systemd-boot pokażesz, **przytrzymując Spację** zaraz po logo HP.
 - **OSD**: przy zmianie głośności i jasności pojawia się okienko z paskiem (`voxos-osd`).
 - **Bateria**: ostrzeżenie przy 20% i alarm przy 10% (`voxos-battery`, timer systemd co 2 minuty).

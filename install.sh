@@ -60,7 +60,7 @@ SERVICES=()
 MASK_SERVICES=()
 ENABLE_MULTILIB=false
 SNAPPER=false
-THEME=nord
+THEME=dot
 AUTOLOGIN=false
 QUIET_BOOT=false
 # shellcheck source=/dev/null
@@ -209,7 +209,7 @@ fi
 
 # --- Usługi systemowe -----------------------------------------------------------
 info "Włączam usługi"
-sudo systemctl enable NetworkManager.service sddm.service
+sudo systemctl enable NetworkManager.service
 if (( ${#SERVICES[@]} > 0 )); then
     sudo systemctl enable "${SERVICES[@]}"
 fi
@@ -217,23 +217,45 @@ if (( ${#MASK_SERVICES[@]} > 0 )); then
     sudo systemctl mask "${MASK_SERVICES[@]}"
 fi
 
-# --- Logowanie: autologin + ekran blokady z motywu jako ekran logowania ----------
-AUTOLOGIN_CONF=/etc/sddm.conf.d/voxos-autologin.conf
-if [[ $AUTOLOGIN == true ]]; then
-    session=hyprland
-    [[ -f /usr/share/wayland-sessions/hyprland.desktop ]] || \
-        session="$(basename "$(ls /usr/share/wayland-sessions/hyprland*.desktop 2>/dev/null | head -1)" .desktop)"
-    if [[ -n $session ]]; then
-        info "Logowanie: autologin do Hyprlanda, hasło na ekranie blokady motywu"
-        sudo mkdir -p /etc/sddm.conf.d
-        printf '[Autologin]\nUser=%s\nSession=%s\nRelogin=true\n' "$USER" "$session" \
-            | sudo tee "$AUTOLOGIN_CONF" >/dev/null
-    else
-        warn "Nie znalazłem sesji Hyprlanda w /usr/share/wayland-sessions - pomijam autologin"
+# --- Logowanie ------------------------------------------------------------------
+# AUTOLOGIN=true: greetd od razu uruchamia Hyprlanda (bez serwera X, szybciej niż SDDM),
+#   a ekran blokady motywu (voxos-session-lock) pełni rolę ekranu logowania.
+# AUTOLOGIN=false: klasyczny ekran logowania SDDM.
+AUTOLOGIN_MARK=/etc/voxos/autologin
+OLD_SDDM_AUTOLOGIN=/etc/sddm.conf.d/voxos-autologin.conf
+
+session_desktop="$(ls /usr/share/wayland-sessions/hyprland.desktop /usr/share/wayland-sessions/hyprland*.desktop 2>/dev/null | head -1)"
+session_cmd=""
+[[ -n $session_desktop ]] && session_cmd="$(grep -m1 '^Exec=' "$session_desktop" | cut -d= -f2-)"
+
+if [[ $AUTOLOGIN == true && -x /usr/bin/greetd && -n $session_cmd ]]; then
+    info "Logowanie: greetd uruchamia Hyprlanda od razu, hasło na ekranie blokady motywu"
+    sudo mkdir -p /etc/greetd /etc/voxos
+    # initial_session = start komputera, default_session = po wylogowaniu (znów prosto do blokady)
+    sudo tee /etc/greetd/config.toml >/dev/null <<GREETD
+# VoxOS - logowanie przez greetd (wygenerowane przez install.sh, zmiany rób w repo)
+[terminal]
+vt = 1
+
+[initial_session]
+command = "$session_cmd"
+user = "$USER"
+
+[default_session]
+command = "$session_cmd"
+user = "$USER"
+GREETD
+    sudo touch "$AUTOLOGIN_MARK"
+    sudo rm -f "$OLD_SDDM_AUTOLOGIN"
+    sudo systemctl disable sddm.service >/dev/null 2>&1 || true
+    sudo systemctl enable greetd.service
+else
+    if [[ $AUTOLOGIN == true ]]; then
+        warn "Brak greetd albo sesji Hyprlanda - zostaję przy ekranie logowania SDDM"
     fi
-elif [[ -f $AUTOLOGIN_CONF ]]; then
-    info "Wyłączam autologin (AUTOLOGIN=false)"
-    sudo rm -f "$AUTOLOGIN_CONF"
+    sudo rm -f "$AUTOLOGIN_MARK" "$OLD_SDDM_AUTOLOGIN"
+    sudo systemctl disable greetd.service >/dev/null 2>&1 || true
+    sudo systemctl enable sddm.service
 fi
 
 # --- Cichy start: bez menu, bez komunikatów, logo VoxOS zamiast logo Archa --------

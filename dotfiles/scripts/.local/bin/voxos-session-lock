@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # VoxOS - blokada ekranu zaraz po autologinie: ekran blokady motywu pełni rolę ekranu logowania.
 # Działa tylko, gdy install.sh włączył autologin (AUTOLOGIN=true). Log: $XDG_RUNTIME_DIR/voxos-session-lock.log
-[[ -f /etc/sddm.conf.d/voxos-autologin.conf ]] || exit 0
+[[ -f /etc/voxos/autologin || -f /etc/sddm.conf.d/voxos-autologin.conf ]] || exit 0
 
 log="${XDG_RUNTIME_DIR:-/tmp}/voxos-session-lock.log"
 for attempt in 1 2 3 4 5; do
