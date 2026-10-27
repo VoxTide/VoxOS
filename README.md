@@ -37,7 +37,7 @@ packages/           listy pakietów (base, dev, aur-dev)
 hosts/<host>/
   host.conf         grupy pakietów, usługi
   packages.txt      sterowniki i pakiety tylko dla tego sprzętu
-  hypr-host.conf    monitory, jasność, touchpad
+  hypr-host.lua     monitory, jasność, touchpad (Lua)
 dotfiles/           konfiguracja linkowana do ~ przez GNU Stow
 ```
 

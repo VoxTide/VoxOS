@@ -9,7 +9,7 @@ choice=$(printf '%s\n' \
 
 case "$choice" in
     "Zablokuj")         loginctl lock-session ;;
-    "Wyloguj")          hyprctl dispatch exit ;;
+    "Wyloguj")          hyprctl dispatch 'hl.dsp.exit()' ;;
     "Uśpij")            systemctl suspend ;;
     "Uruchom ponownie") systemctl reboot ;;
     "Wyłącz")           systemctl poweroff ;;

@@ -18,6 +18,17 @@ read_list() {
     sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' "$1"
 }
 
+# Usuwa zerwane symlinki do repo (pliki, które zniknęły z repo, np. stary hyprland.conf)
+cleanup_dead_links() {
+    local link
+    while IFS= read -r -d '' link; do
+        if [[ $(readlink -m "$link") == "$REPO_DIR"/* ]]; then
+            info "Usuwam nieaktualny symlink: $link"
+            rm "$link"
+        fi
+    done < <(find "$HOME" -maxdepth 4 -xtype l -print0 2>/dev/null)
+}
+
 # Przenosi istniejące pliki, które zablokowałyby stow, do kopii .bak
 backup_conflicts() {
     local pkg="$1" rel target
@@ -37,7 +48,7 @@ backup_conflicts() {
 # --- Sprawdzenia -------------------------------------------------------------
 [[ $EUID -ne 0 ]] || die "Uruchom jako zwykły użytkownik. Sudo zostanie użyte tam, gdzie trzeba."
 [[ -f $HOST_DIR/host.conf ]] || die "Brak profilu dla hosta '$HOST'. Dostępne: $(ls "$REPO_DIR/hosts" | tr '\n' ' ')"
-[[ -f $HOST_DIR/hypr-host.conf ]] || die "Brak pliku $HOST_DIR/hypr-host.conf"
+[[ -f $HOST_DIR/hypr-host.lua ]] || die "Brak pliku $HOST_DIR/hypr-host.lua"
 
 # Domyślne wartości, nadpisywane przez host.conf
 PKG_GROUPS=()
@@ -92,6 +103,8 @@ if (( ${#aur_pkgs[@]} > 0 )); then
 fi
 
 # --- Dotfiles -----------------------------------------------------------------
+cleanup_dead_links
+
 info "Linkuję dotfiles (GNU Stow)"
 for dir in "$DOTFILES"/*/; do
     pkg="$(basename "$dir")"
@@ -101,7 +114,7 @@ done
 
 info "Podpinam konfigurację Hyprlanda dla hosta $HOST"
 mkdir -p "$HOME/.config/hypr"
-ln -sfn "$HOST_DIR/hypr-host.conf" "$HOME/.config/hypr/host.conf"
+ln -sfn "$HOST_DIR/hypr-host.lua" "$HOME/.config/hypr/host.lua"
 
 # Foldery domowe (Obrazy, Pobrane itd.) w języku systemu
 xdg-user-dirs-update
