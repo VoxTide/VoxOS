@@ -142,6 +142,7 @@ Jednorazowe skrypty (można je uruchamiać ponownie, niczego nie psują):
 ```bash
 voxos-dev-setup        # Flutter 3.47.7, Android SDK, Claude Code, rozszerzenia VS Code, klucz SSH
 voxos-homelab-setup    # ssh zomboid / ssh pihole bez hasła, pihole-web otwiera panel Pi-hole
+voxos-import-project   # projekt Flutter z dysku zewnętrznego (np. dawny H:) do ~/flutter_projects: kopia, debug.keystore, pub get, testy
 voxos-backup           # kopia Dokumentów, Obrazów, projektów itd. na serwer (rsync, ustawienia w ~/.config/voxos/backup.conf)
 ```
 

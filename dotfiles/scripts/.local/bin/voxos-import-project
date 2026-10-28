@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# VoxOS - przeniesienie projektu Flutter z dysku zewnętrznego (np. dawny H: z Windowsa) do ~/flutter_projects
+#   voxos-import-project            projekt na_czas
+#   voxos-import-project korepetytor_plus
+# Kroki: kopia bez plików budowania, uprawnienia po exFAT, debug.keystore (ten sam podpis = aktualizacja
+# aplikacji na telefonie bez utraty danych), usunięcie ścieżek z Windowsa, flutter pub get, flutter test.
+set -euo pipefail
+name="${1:-na_czas}"
+dest="$HOME/flutter_projects/$name"
+export PATH="$HOME/development/flutter/bin:$HOME/Android/Sdk/platform-tools:$PATH"
+
+info() { printf '\e[1;36m==> %s\e[0m\n' "$*"; }
+warn() { printf '\e[1;33m!! %s\e[0m\n' "$*"; }
+ok()   { printf '\e[1;32m✓ %s\e[0m\n' "$*"; }
+
+command -v flutter >/dev/null || { warn "Brak Fluttera - najpierw: voxos-dev-setup"; exit 1; }
+
+# --- Szukanie projektu na podłączonych dyskach -----------------------------------
+roots=()
+for r in ${VOXOS_MEDIA:-"/run/media/$USER" "/media/$USER" /mnt}; do [[ -d $r ]] && roots+=("$r"); done
+(( ${#roots[@]} )) || { warn "Nie widzę żadnego podłączonego dysku. Podłącz go (zamontuje się sam) i spróbuj ponownie."; exit 1; }
+
+src=$(find "${roots[@]}" -maxdepth 5 -type f -name pubspec.yaml -path "*/$name/pubspec.yaml" 2>/dev/null | head -1 || true)
+[[ -n $src ]] || { warn "Nie znalazłem folderu '$name' z pubspec.yaml na: ${roots[*]}"; exit 1; }
+src="$(dirname "$src")"
+ok "Znalazłem projekt: $src"
+
+if [[ -e $dest ]]; then
+    warn "$dest już istnieje - odświeżam pliki (nowsze z dysku nadpiszą lokalne, nic nie jest usuwane)"
+fi
+mkdir -p "$dest"
+
+info "Kopiuję projekt (bez plików budowania)"
+rsync -a --info=progress2 --no-perms --no-owner --no-group \
+    --exclude build/ --exclude .dart_tool/ --exclude .gradle/ --exclude android/.gradle/ \
+    --exclude android/app/build/ --exclude .flutter-plugins --exclude .flutter-plugins-dependencies \
+    "$src/" "$dest/"
+
+# exFAT nie zna uprawnień: wszystko przychodzi jako wykonywalne. Porządkujemy jak w zwykłym projekcie.
+info "Porządkuję uprawnienia plików"
+find "$dest" -type d -exec chmod 755 {} +
+find "$dest" -type f -not -path "*/.git/*" -exec chmod 644 {} +
+[[ -f $dest/android/gradlew ]] && chmod 755 "$dest/android/gradlew"
+
+if [[ -d $dest/.git ]]; then
+    git -C "$dest" config core.fileMode false     # bez fałszywych zmian uprawnień po exFAT
+    changed=$(git -C "$dest" status --porcelain 2>/dev/null | wc -l)
+    if (( changed > 20 )); then
+        warn "git widzi $changed zmienionych plików - to zwykle końce linii z Windowsa (CRLF). Kod jest ten sam;"
+        warn "jeśli chcesz to wyrównać: cd $dest && git add --renormalize . && git status"
+    fi
+fi
+
+# --- Klucz debug: ten sam podpis co na Windowsie ----------------------------------
+ks=$(find "${roots[@]}" -maxdepth 5 -type f -name debug.keystore 2>/dev/null | head -1 || true)
+if [[ -n $ks ]]; then
+    mkdir -p "$HOME/.android"
+    if [[ -f $HOME/.android/debug.keystore ]] && ! cmp -s "$ks" "$HOME/.android/debug.keystore"; then
+        mv "$HOME/.android/debug.keystore" "$HOME/.android/debug.keystore.bak.$(date +%Y%m%d-%H%M%S)"
+    fi
+    install -m 600 "$ks" "$HOME/.android/debug.keystore"
+    ok "debug.keystore skopiowany z $ks"
+else
+    warn "Nie znalazłem debug.keystore na dysku. Bez niego aplikacji na telefonie nie da się zaktualizować"
+    warn "bez odinstalowania (i utraty danych). Skopiuj go ręcznie do ~/.android/debug.keystore"
+fi
+
+# --- Ścieżki z Windowsa -------------------------------------------------------------
+if [[ -f $dest/android/local.properties ]]; then
+    rm -f "$dest/android/local.properties"
+    ok "Usunięto android/local.properties ze ścieżkami z Windowsa (Flutter utworzy nowy)"
+fi
+
+cd "$dest"
+info "flutter pub get"
+flutter pub get
+info "flutter test (może potrwać kilka minut)"
+if flutter test; then ok "Testy przechodzą"; else warn "Część testów nie przeszła - zobacz wyżej"; fi
+
+echo
+ok "Projekt jest w $dest"
+echo "Dalej: telefon z debugowaniem USB podłączony kablem, potem:"
+echo "  cd $dest && adb devices          # na telefonie zezwól na debugowanie"
+echo "  flutter run --release            # aktualizacja aplikacji bez utraty danych"
+echo "  claude                           # Claude Code w folderze projektu"
