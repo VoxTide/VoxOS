@@ -375,7 +375,7 @@ if [[ $QUIET_BOOT == true ]] && command -v bootctl >/dev/null 2>&1; then
         fi
     fi
 
-    for p in quiet loglevel=3 systemd.show_status=auto rd.systemd.show_status=auto rd.udev.log_level=3 vt.global_cursor_default=0; do
+    for p in quiet loglevel=3 systemd.show_status=auto rd.systemd.show_status=auto rd.udev.log_level=3 rd.systemd.log_level=warning vt.global_cursor_default=0; do
         set_kernel_param "$p"
     done
 
