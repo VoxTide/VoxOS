@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# VoxOS - menedżer zadań (Ctrl + Shift + Esc): procesor, pamięć, dysk, sieć, procesy z zamykaniem.
+# Mission Center wygląda jak Menedżer zadań z Windowsa; bez niego btop w terminalu.
+if pgrep -x missioncenter >/dev/null; then
+    hyprctl dispatch 'hl.dsp.focus({ window = "class:^(io.missioncenter.MissionCenter)$" })' >/dev/null 2>&1
+elif command -v missioncenter >/dev/null; then
+    setsid -f missioncenter >/dev/null 2>&1
+elif command -v btop >/dev/null; then
+    setsid -f kitty --title "Menedżer zadań" btop >/dev/null 2>&1
+else
+    setsid -f kitty --title "Menedżer zadań" top >/dev/null 2>&1
+fi

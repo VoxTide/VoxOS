@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# VoxOS - przyciąganie okien jak w Windowsie (Snap)
+#   voxos-snap left|right       połowa ekranu (Super + Alt + strzałka w lewo / w prawo)
+#   voxos-snap max              maksymalizacja z paskiem (Super + Alt + strzałka w górę)
+#   voxos-snap center           pływające na środku, 60% ekranu
+#   voxos-snap tile             z powrotem do układu kafelkowego (Super + Alt + strzałka w dół)
+#   voxos-snap drop             po przeciągnięciu okna (Super + lewy przycisk) do krawędzi ekranu:
+#                               lewa/prawa krawędź = połowa, górna = maksymalizacja
+set -u
+GAP=10      # odstęp od krawędzi i między połówkami
+EDGE=8      # jak blisko krawędzi musi być kursor przy upuszczaniu
+
+win=$(hyprctl activewindow -j 2>/dev/null)
+addr=$(jq -r '.address // empty' <<<"$win")
+[[ -n $addr ]] || exit 0
+floating=$(jq -r '.floating' <<<"$win")
+fullscreen=$(jq -r '.fullscreen // 0' <<<"$win")
+
+dsp() { hyprctl dispatch "$1" >/dev/null 2>&1; }
+
+# Obszar roboczy monitora (bez paska), w pikselach logicznych
+read -r mx my lw lh rl rt rr rb < <(hyprctl monitors -j 2>/dev/null | jq -r '
+    .[] | select(.focused)
+    | (if (.transform % 2) == 1 then [.height, .width] else [.width, .height] end) as $s
+    | [.x, .y, ($s[0] / .scale | floor), ($s[1] / .scale | floor), .reserved[0], .reserved[1], .reserved[2], .reserved[3]]
+    | @tsv')
+[[ -n ${lw:-} ]] || exit 0
+ux=$(( mx + rl + GAP )); uy=$(( my + rt + GAP ))
+uw=$(( lw - rl - rr - 2 * GAP )); uh=$(( lh - rt - rb - 2 * GAP ))
+
+unmax() { [[ $fullscreen != 0 ]] && dsp "hl.dsp.window.fullscreen({ mode = \"maximized\", action = \"unset\", window = \"address:$addr\" })"; }
+
+place() {   # place x y szer wys
+    unmax
+    [[ $floating == true ]] || dsp "hl.dsp.window.float({ action = \"enable\", window = \"address:$addr\" })"
+    dsp "hl.dsp.window.resize({ x = $3, y = $4, window = \"address:$addr\" })"
+    dsp "hl.dsp.window.move({ x = $1, y = $2, window = \"address:$addr\" })"
+}
+
+half=$(( (uw - GAP) / 2 ))
+action="${1:-}"
+
+if [[ $action == drop ]]; then
+    [[ $floating == true ]] || exit 0          # okna kafelkowe układają się same
+    read -r cx cy < <(hyprctl cursorpos -j 2>/dev/null | jq -r '[.x, .y] | map(floor) | @tsv')
+    [[ -n ${cx:-} ]] || exit 0
+    if   (( cx <= mx + EDGE ));      then action=left
+    elif (( cx >= mx + lw - EDGE )); then action=right
+    elif (( cy <= my + EDGE ));      then action=max
+    else exit 0
+    fi
+fi
+
+case "$action" in
+    left)   place "$ux" "$uy" "$half" "$uh" ;;
+    right)  place $(( ux + half + GAP )) "$uy" "$half" "$uh" ;;
+    center) w=$(( uw * 6 / 10 )); h=$(( uh * 7 / 10 ))
+            place $(( ux + (uw - w) / 2 )) $(( uy + (uh - h) / 2 )) "$w" "$h" ;;
+    max)    dsp "hl.dsp.window.fullscreen({ mode = \"maximized\", action = \"toggle\", window = \"address:$addr\" })" ;;
+    tile)   unmax
+            [[ $floating == true ]] && dsp "hl.dsp.window.float({ action = \"disable\", window = \"address:$addr\" })" ;;
+    *)      echo "Użycie: voxos-snap left|right|max|center|tile|drop" >&2; exit 1 ;;
+esac

@@ -31,7 +31,7 @@ I = {
     "mic": "󰍬", "mic_off": "󰍭", "coffee": "󰅶", "plane": "󰀝",
     "phone": "󰄜", "phone_off": "󰥐", "right": "󰅂", "left": "󰅁", "refresh": "󰑐",
     "check": "󰄬", "power": "󰐥", "shot": "󰹑", "palette": "󰏘",
-    "play": "󰐊", "pause": "󰏤", "next": "󰒭", "prev": "󰒮", "cog": "󰒓", "monitor": "󰍹",
+    "play": "󰐊", "pause": "󰏤", "next": "󰒭", "prev": "󰒮", "cog": "󰒓", "monitor": "󰍹", "clip": "󰳹", "send": "󰈪", "ring": "󰂞", "open": "󰏌",
 }
 # Ikony urządzeń Bluetooth wg pola "Icon" z `bluetoothctl info`
 BT_ICONS = {
@@ -252,8 +252,12 @@ def read_state(with_phone):
                             "artist": meta[1] if len(meta) > 1 else ""}
 
     if with_phone and have("kdeconnect-cli"):
-        names = out(["kdeconnect-cli", "-a", "--name-only"], timeout=4).strip().splitlines()
-        st["phone"] = names[0] if names else ""
+        try:
+            info = json.loads(out(["bash", os.path.join(BIN, "voxos-phone"), "info"], timeout=6) or "{}")
+        except ValueError:
+            info = {}
+        st["phone"] = info.get("name", "")
+        st["phone_info"] = info
     return st
 
 
@@ -400,6 +404,7 @@ def main_gui():
             self.stack.add_named(self.build_main(), "main")
             self.stack.add_named(self.build_wifi(), "wifi")
             self.stack.add_named(self.build_bt(), "bt")
+            self.stack.add_named(self.build_phone(), "phone")
 
             self.win.connect("key-press-event", self.on_key)
             self.win.connect("destroy", lambda *_: self.quit())
@@ -470,7 +475,7 @@ def main_gui():
             self.t_mic = Tile(I["mic"], "Mikrofon", self.act_mic)
             self.t_caff = Tile(I["coffee"], "Bez usypiania", self.act_caffeine)
             self.t_plane = Tile(I["plane"], "Tryb samolotowy", self.act_airplane)
-            self.t_phone = Tile(I["phone"], "Telefon", lambda: self.close_then(["kdeconnect-app"]))
+            self.t_phone = Tile(I["phone"], "Telefon", lambda: self.close_then(["kdeconnect-app"]), self.show_phone)
             tiles = [self.t_wifi, self.t_bt, self.t_night, self.t_dnd,
                      self.t_mic, self.t_caff, self.t_plane, self.t_phone]
             for i, t in enumerate(tiles):
@@ -559,6 +564,45 @@ def main_gui():
 
             self.bt_status = label("", "status", xalign=0, ellipsize=True, hexpand=True)
             page.pack_start(self.bt_status, False, False, 0)
+            return page
+
+        def build_phone(self):
+            page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            head.pack_start(button(I["left"], "round", self.show_main, "Wróć"), False, False, 0)
+            head.pack_start(label("Telefon", "page-title", xalign=0, hexpand=True), True, True, 0)
+            page.pack_start(head, False, False, 0)
+
+            card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            card.get_style_context().add_class("notif")
+            card.pack_start(label(I["phone"], "icon net-icon"), False, False, 0)
+            texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            self.phone_name = label("", "notif-title", xalign=0, ellipsize=True, hexpand=True)
+            self.phone_sub = label("", "notif-body", xalign=0, ellipsize=True, hexpand=True)
+            texts.pack_start(self.phone_name, False, False, 0)
+            texts.pack_start(self.phone_sub, False, False, 0)
+            card.pack_start(texts, True, True, 0)
+            page.pack_start(card, False, False, 0)
+
+            self.phone_actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            phone = ["bash", os.path.join(BIN, "voxos-phone")]
+            for icon, text, cb in [
+                (I["clip"], "Wyślij schowek na telefon", lambda: self.phone_cmd("clip", "Wysłano schowek")),
+                (I["send"], "Wyślij pliki…", lambda: self.close_then(phone + ["pick"])),
+                (I["ring"], "Zadzwoń, aby znaleźć telefon", lambda: self.phone_cmd("ring", "Telefon dzwoni")),
+                (I["open"], "Otwórz KDE Connect", lambda: self.close_then(["kdeconnect-app"])),
+            ]:
+                row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                row.pack_start(label(icon, "icon net-icon"), False, False, 0)
+                row.pack_start(label(text, "net-name", xalign=0, ellipsize=True, hexpand=True), True, True, 0)
+                self.phone_actions.pack_start(button(row, "net", cb), False, False, 0)
+            page.pack_start(self.phone_actions, False, False, 0)
+
+            self.phone_status = label("Schowek z telefonu: na telefonie w powiadomieniu KDE Connect wybierz „Wyślij schowek”.",
+                                      "status", xalign=0)
+            self.phone_status.set_line_wrap(True)
+            self.phone_status.set_max_width_chars(40)
+            page.pack_start(self.phone_status, False, False, 0)
             return page
 
         def make_scale(self, lo, hi, key):
@@ -862,6 +906,34 @@ def main_gui():
             threading.Thread(target=lambda: run(["hyprctl", "reload"], timeout=10), daemon=True).start()
             return False
 
+        # --- Telefon (KDE Connect) ------------------------------------------------------
+        def show_phone(self):
+            self.stack.set_visible_child_name("phone")
+            self.fill_phone()
+            self.last_phone = 0.0      # świeży stan baterii przy najbliższym odświeżeniu
+            self.wake.set()
+
+        def fill_phone(self):
+            info = self.state.get("phone_info") or {}
+            if info.get("name"):
+                self.phone_name.set_text(info["name"])
+                bat = info.get("battery")
+                sub = "połączony"
+                if bat is not None:
+                    sub = f"bateria {bat}%" + (" · ładuje się" if info.get("charging") else "")
+                self.phone_sub.set_text(sub)
+                self.phone_actions.set_sensitive(True)
+            else:
+                self.phone_name.set_text("Telefon niepołączony")
+                self.phone_sub.set_text("Włącz KDE Connect na telefonie (ta sama sieć Wi-Fi)")
+                self.phone_actions.set_sensitive(False)
+
+        def phone_cmd(self, action, done):
+            def work():
+                rc, _, _ = run(["bash", os.path.join(BIN, "voxos-phone"), action], timeout=15)
+                GLib.idle_add(lambda: (self.phone_status.set_text(done if rc == 0 else "Nie udało się - czy telefon jest w zasięgu?"), False)[1])
+            threading.Thread(target=work, daemon=True).start()
+
         # --- Bluetooth -----------------------------------------------------------------
         def show_bt(self):
             self.stack.set_visible_child_name("bt")
@@ -996,6 +1068,7 @@ def main_gui():
                     self.last_phone = time.monotonic()
                 elif "phone" in self.state:
                     st["phone"] = self.state["phone"]
+                    st["phone_info"] = self.state.get("phone_info", {})
                 GLib.idle_add(self.apply_state, st)
                 self.wake.wait(2.0)
                 self.wake.clear()
@@ -1061,6 +1134,8 @@ def main_gui():
                                sensitive=st["mic_present"])
                 self.t_caff.set(st["caffeine"], "ekran nie zgaśnie" if st["caffeine"] else "")
                 self.t_plane.set(self.airplane(), "radia wyłączone" if self.airplane() else "")
+                if self.stack.get_visible_child_name() == "phone":
+                    self.fill_phone()
                 if "phone" in st:
                     self.t_phone.set(bool(st["phone"]), st["phone"] or "niepołączony",
                                      I["phone"] if st["phone"] else I["phone_off"],

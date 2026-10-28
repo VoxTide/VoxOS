@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# VoxOS - pokaż pulpit (Super + H, jak Win + D): chowa wszystkie okna bieżącego pulpitu,
+# drugie wciśnięcie przywraca je na miejsce. Schowane okna czekają na ukrytym pulpicie special:desktop.
+set -u
+STATE="${XDG_RUNTIME_DIR:-/tmp}/voxos-showdesktop"
+HIDDEN="special:desktop"
+dsp() { hyprctl dispatch "$1" >/dev/null 2>&1; }
+
+if [[ -s $STATE ]]; then
+    mapfile -t lines < "$STATE"
+    rm -f "$STATE"
+    ws="${lines[0]}"
+    # Przywracamy tylko okna, które dalej są schowane (mogły zostać w międzyczasie zamknięte)
+    mapfile -t still < <(hyprctl clients -j 2>/dev/null | jq -r --arg h "$HIDDEN" '.[] | select(.workspace.name == $h) | .address')
+    for addr in "${lines[@]:1}"; do
+        [[ " ${still[*]} " == *" $addr "* ]] || continue
+        dsp "hl.dsp.window.move({ workspace = $ws, follow = false, window = \"address:$addr\" })"
+    done
+    [[ -n ${lines[1]:-} ]] && dsp "hl.dsp.focus({ window = \"address:${lines[1]}\" })"
+    exit 0
+fi
+
+ws=$(hyprctl activeworkspace -j 2>/dev/null | jq -r '.id')
+[[ $ws =~ ^-?[0-9]+$ ]] || exit 0
+# Najpierw aktywne okno, żeby po przywróceniu to ono miało fokus
+mapfile -t addrs < <(hyprctl clients -j 2>/dev/null | jq -r --argjson ws "$ws" \
+    'map(select(.workspace.id == $ws and .mapped)) | sort_by(.focusHistoryID)[] | .address')
+(( ${#addrs[@]} > 0 )) || exit 0
+printf '%s\n' "$ws" "${addrs[@]}" > "$STATE"
+for addr in "${addrs[@]}"; do
+    dsp "hl.dsp.window.move({ workspace = \"$HIDDEN\", follow = false, window = \"address:$addr\" })"
+done

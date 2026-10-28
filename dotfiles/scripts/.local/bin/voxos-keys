@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # VoxOS - ściągawka skrótów klawiszowych (Super + /)
 # Wybór z listy niczego nie uruchamia - to tylko podgląd. Esc zamyka.
-rofi -dmenu -i -no-custom -p "Skróty" -theme-str 'window { width: 640px; } listview { lines: 16; }' >/dev/null <<'LIST'
+rofi -dmenu -i -no-custom -p "Skróty" -theme-str 'window { width: 640px; } listview { lines: 18; }' >/dev/null <<'LIST'
 Super + Enter           terminal
 Super + Shift + Enter   wysuwany terminal (pokaż / schowaj)
 Super + D               aplikacje (Ctrl + Tab: kalkulator, pliki)
@@ -20,7 +20,14 @@ Super + Shift + 1-9     przenieś okno na pulpit
 Super + Tab             poprzedni pulpit
 3 palce w bok           zmiana pulpitu (touchpad)
 Super + mysz lewy/prawy przesuń / zmień rozmiar okna
+Super + Alt + ← / →     okno na lewą / prawą połowę ekranu
+Super + Alt + ↑ / ↓     maksymalizuj / z powrotem do kafelków
+Super + Alt + C         okno na środek
+Super + H               pokaż pulpit (drugi raz: przywróć okna)
+Ctrl + Shift + Esc      menedżer zadań
 Super + V               historia schowka
+Super + Shift + V       wyślij schowek na telefon
+Spacja (w Thunarze)     szybki podgląd pliku
 Super + S               panel szybkich ustawień (też klik w ikony po prawej na pasku)
 Super + M               zminimalizuj okno (też klik w tytuł okna na pasku)
 Super + Shift + M       przywróć zminimalizowane okno

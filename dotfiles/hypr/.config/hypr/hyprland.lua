@@ -42,6 +42,12 @@ hl.env("HYPRCURSOR_SIZE", "24")
 hl.config({
     general = {
         layout = "dwindle",
+        -- Przeciągane pływające okna przyklejają się do krawędzi ekranu i do innych okien
+        snap = {
+            enabled     = true,
+            window_gap  = 10,
+            monitor_gap = 10,
+        },
     },
 
     animations = {
@@ -99,6 +105,15 @@ hl.bind(mainMod .. " + SHIFT + Return", hl.dsp.exec_cmd("bash ~/.local/bin/voxos
 hl.bind(mainMod .. " + K",         hl.dsp.exec_cmd("bash ~/.local/bin/voxos-launcher calc"))  -- kalkulator
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-launcher files")) -- szukanie plików
 hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-ocr"))           -- tekst z ekranu do schowka
+-- Przyciąganie okien jak w Windowsie (voxos-snap)
+hl.bind(mainMod .. " + ALT + left",  hl.dsp.exec_cmd("bash ~/.local/bin/voxos-snap left"))    -- lewa połowa
+hl.bind(mainMod .. " + ALT + right", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-snap right"))   -- prawa połowa
+hl.bind(mainMod .. " + ALT + up",    hl.dsp.exec_cmd("bash ~/.local/bin/voxos-snap max"))     -- maksymalizacja
+hl.bind(mainMod .. " + ALT + down",  hl.dsp.exec_cmd("bash ~/.local/bin/voxos-snap tile"))    -- z powrotem do kafelków
+hl.bind(mainMod .. " + ALT + C",     hl.dsp.exec_cmd("bash ~/.local/bin/voxos-snap center"))  -- na środek
+hl.bind(mainMod .. " + H",           hl.dsp.exec_cmd("bash ~/.local/bin/voxos-showdesktop"))  -- pokaż pulpit
+hl.bind("CTRL + SHIFT + Escape",     hl.dsp.exec_cmd("bash ~/.local/bin/voxos-taskmgr"))      -- menedżer zadań
+hl.bind(mainMod .. " + SHIFT + V",   hl.dsp.exec_cmd("bash ~/.local/bin/voxos-phone clip"))   -- schowek na telefon
 hl.bind(mainMod .. " + slash",  hl.dsp.exec_cmd("bash ~/.local/bin/voxos-keys"))   -- ściągawka skrótów
 hl.bind(mainMod .. " + N",      hl.dsp.exec_cmd("makoctl dismiss --all"))           -- schowaj powiadomienia
 hl.bind(mainMod .. " + Tab",    hl.dsp.focus({ workspace = "previous" }))           -- poprzedni pulpit
@@ -139,6 +154,8 @@ end
 -- Przesuwanie i zmiana rozmiaru okien myszką
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+-- Upuszczenie pływającego okna przy krawędzi ekranu: połowa ekranu albo maksymalizacja (jak Snap w Windowsie)
+hl.bind(mainMod .. " + mouse:272", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-snap drop"), { drag = true, non_consuming = true })
 
 -- Głośność z okienkiem OSD (działa też na zablokowanym ekranie, z powtarzaniem)
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-osd volume up"),   { locked = true, repeating = true })
@@ -183,6 +200,21 @@ hl.window_rule({
     match  = { class = "^com.gabm.satty$" },
     float  = true,
     center = true,
+})
+
+-- Szybki podgląd plików (Spacja w Thunarze) i menedżer zadań: pływające na środku
+hl.window_rule({
+    name   = "quicklook",
+    match  = { class = "^(org.gnome.NautilusPreviewer)$" },
+    float  = true,
+    center = true,
+})
+hl.window_rule({
+    name   = "taskmgr",
+    match  = { class = "^(io.missioncenter.MissionCenter)$" },
+    float  = true,
+    center = true,
+    size   = { "monitor_w*0.7", "monitor_h*0.75" },
 })
 
 -- Obraz w obrazie z Firefoksa: pływający i widoczny na każdym pulpicie

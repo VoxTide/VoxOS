@@ -80,12 +80,19 @@ boot/splash.bmp     logo VoxOS przy starcie
 | `Super + Spacja` | okno pływające |
 | `Super + L` | blokada ekranu |
 | `Super + V` | historia schowka |
+| `Super + Shift + V` | wyślij schowek na telefon (KDE Connect) |
+| `Spacja` w Thunarze | szybki podgląd pliku (sushi, jak Quick Look) |
 | `Super + S` | panel szybkich ustawień |
 | `Super + M` albo klik w tytuł okna na pasku | zminimalizuj okno |
 | `Super + Shift + M` albo klik w licznik 󰖰 na pasku | przywróć zminimalizowane okno |
 | `Super + strzałki` | fokus na sąsiednie okno |
 | `Super + Shift + strzałki` | przesuń okno |
 | `Super + Ctrl + strzałki` | zmień rozmiar okna |
+| `Super + Alt + ←/→` | okno na lewą / prawą połowę ekranu (też: przeciągnij pływające okno z Super do krawędzi) |
+| `Super + Alt + ↑/↓` | maksymalizuj / z powrotem do kafelków (przeciągnięcie do górnej krawędzi też maksymalizuje) |
+| `Super + Alt + C` | okno na środek ekranu |
+| `Super + H` | pokaż pulpit (drugi raz przywraca okna) |
+| `Ctrl + Shift + Esc` | menedżer zadań (Mission Center) |
 | `Super + 1-9` albo klik w kropkę na pasku | przełącz pulpit |
 | `Super + Shift + 1-9` | przenieś okno na pulpit |
 | `Super + Tab` | poprzedni pulpit |
@@ -136,6 +143,7 @@ voxos-backup           # kopia Dokumentów, Obrazów, projektów itd. na serwer 
 
 - **Telefon w trybie debugowania USB** + kabel: `adb devices`, potem `flutter run` w folderze projektu.
 - **Studia**: LibreOffice po polsku ze słownikiem, czcionki zgodne z dokumentami z Worda (Liberation, Carlito, Caladea), w VS Code „Live Preview” do podglądu strony HTML na żywo.
+- **Telefon w panelu**: strzałka przy kafelku Telefon pokazuje baterię telefonu i akcje: wyślij schowek, wyślij pliki, zadzwoń, aby znaleźć. W Thunarze prawy klik → *Wyślij na telefon*. Schowek laptop → telefon synchronizuje się sam; telefon → laptop: w powiadomieniu KDE Connect na telefonie *Wyślij schowek* (Android nie pozwala aplikacjom czytać schowka w tle).
 - **KDE Connect**: aplikacja KDE Connect na telefonie (na tablecie działa też Zorin Connect), ikona w zasobniku, porty 1714-1764 otwarte w ufw.
 
 ## Aktualizacja z pliku zip

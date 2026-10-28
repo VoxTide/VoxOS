@@ -232,6 +232,31 @@ fi
 # Foldery domowe (Obrazy, Pobrane itd.) w języku systemu
 xdg-user-dirs-update
 
+# Thunar: Spacja = szybki podgląd (sushi, jak Quick Look), prawy klik -> Wyślij na telefon (KDE Connect)
+thunar_actions() {
+    local uca="$HOME/.config/Thunar/uca.xml" accels="$HOME/.config/Thunar/accels.scm"
+    mkdir -p "$HOME/.config/Thunar"
+    [[ -L $uca ]] && rm -f "$uca"
+    [[ -s $uca ]] || printf '<?xml version="1.0" encoding="UTF-8"?>\n<actions>\n</actions>\n' > "$uca"
+    add_action() {   # add_action id ikona nazwa komenda opis
+        grep -q "<unique-id>$1</unique-id>" "$uca" && return 0
+        local block
+        block=$(printf '<action>\n\t<icon>%s</icon>\n\t<name>%s</name>\n\t<submenu></submenu>\n\t<unique-id>%s</unique-id>\n\t<command>%s</command>\n\t<description>%s</description>\n\t<range>*</range>\n\t<patterns>*</patterns>\n\t<audio-files/>\n\t<image-files/>\n\t<other-files/>\n\t<text-files/>\n\t<video-files/>\n</action>' "$2" "$3" "$1" "$4" "$5")
+        BLOCK="$block" python3 -c 'import os,sys; p=sys.argv[1]; s=open(p).read(); i=s.rfind("</actions>"); open(p,"w").write(s[:i]+os.environ["BLOCK"]+"\n"+s[i:])' "$uca"
+    }
+    add_action voxos-quicklook view-preview "Szybki podgląd" "sushi %f" "Podgląd pliku bez otwierania programu (Spacja)"
+    add_action voxos-phone-share kdeconnect "Wyślij na telefon" "bash $HOME/.local/bin/voxos-phone share %F" "Wysyła zaznaczone pliki przez KDE Connect"
+    local line='(gtk_accel_path "<Actions>/ThunarActions/uca-action-voxos-quicklook" "space")'
+    if ! grep -qxF "$line" "$accels" 2>/dev/null; then
+        [[ -f $accels ]] && sed -i '/uca-action-voxos-quicklook/d' "$accels"
+        echo "$line" >> "$accels"
+        if thunar -q 2>/dev/null && [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+            setsid -f thunar --daemon >/dev/null 2>&1   # ponowne wczytanie skrótów
+        fi
+    fi
+}
+command -v python3 >/dev/null && thunar_actions
+
 # Firefox: sprzętowe dekodowanie wideo (VA-API) - mniej pracy procesora, dłuższa bateria.
 # Profil powstaje przy pierwszym uruchomieniu Firefoksa, więc po nim warto puścić voxos-update/install.sh jeszcze raz.
 for prof in "$HOME"/.mozilla/firefox/*.default* "$HOME"/.config/mozilla/firefox/*.default*; do

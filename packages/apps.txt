@@ -45,3 +45,9 @@ fd                            # zakładka PLIKI (Super + Shift + F)
 
 # Bateria: sprzętowe dekodowanie wideo (sprawdzenie: vainfo)
 libva-utils
+
+# Szybki podgląd plików (Spacja w Thunarze, jak Quick Look w macOS)
+sushi
+# Menedżer zadań (Ctrl + Shift + Esc)
+mission-center
+btop
