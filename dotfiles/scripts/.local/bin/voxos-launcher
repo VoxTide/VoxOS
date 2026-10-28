@@ -8,7 +8,7 @@ mode="${1:-drun}"
 args=(-display-drun "APLIKACJE" -display-files "PLIKI")
 modi="drun"
 # Kalkulator to wtyczka rofi-calc; gdyby jej nie było, launcher działa bez tej zakładki
-if compgen -G "/usr/lib/rofi/calc.so" >/dev/null || rofi -help 2>/dev/null | grep -qw calc; then
+if compgen -G "/usr/lib/rofi/*calc.so" >/dev/null || rofi -help 2>/dev/null | grep -qw calc; then
     modi+=",calc"
     args+=(-display-calc "KALKULATOR" -calc-command "echo -n '{result}' | wl-copy" -no-show-match)
 else
