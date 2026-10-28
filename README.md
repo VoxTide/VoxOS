@@ -129,6 +129,8 @@ boot/splash.bmp     logo VoxOS przy starcie
 - **Okienka ustawień** (głośność, sieć, Bluetooth, archiwa) otwierają się jako pływające. Obraz w obrazie z Firefoksa jest widoczny na każdym pulpicie.
 - **Terminal**: prompt starship w kolorach motywu, `Ctrl+R` szukanie w historii (fzf), `z <folder>` skakanie po folderach (zoxide), `ls`/`ll`/`lt` z ikonami (eza), kolorowy `cat` (bat), `ff` = fastfetch, podpowiedzi Tab.
 
+Część aplikacji (GTK4/libadwaita, Firefox) ma też własny przycisk X w oknie, tak jak w Windowsie. Minimalizacja działa przez klik w tytuł okna na pasku albo `Super + M` (Hyprland nie obsługuje przycisku minimalizacji w oknach).
+
 Okna aktywują się **po kliknięciu** (samo najechanie myszą nie zmienia aktywnego okna, kółko myszy działa pod kursorem).
 
 ## Programowanie, studia, homelab

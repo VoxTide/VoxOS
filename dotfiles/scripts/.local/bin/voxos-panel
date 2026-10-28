@@ -178,6 +178,13 @@ def notifications():
         for r in data:
             items.append({"id": int(r.get("id") or 0), "app": r.get("app_name") or "",
                           "summary": r.get("summary") or "", "body": r.get("body") or ""})
+    if data is None:                       # mako 1.10 i starsze: tekst "Notification 7: tytuł" + "  App name: ..."
+        for line in out(["makoctl", "history"]).splitlines():
+            m = re.match(r"^Notification (\d+):\s?(.*)$", line)
+            if m:
+                items.append({"id": int(m.group(1)), "app": "", "summary": m.group(2).strip(), "body": ""})
+            elif items and line.strip().startswith("App name:"):
+                items[-1]["app"] = line.split(":", 1)[1].strip()
     items = [n for n in items if n["app"] not in ("voxos-osd",)]
     # "Wyczyść" zapamiętuje najwyższe id (razem z PID mako, bo po restarcie mako numeruje od nowa)
     pid = out(["pgrep", "-x", "mako"]).strip().split("\n")[0]

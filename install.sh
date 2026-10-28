@@ -207,7 +207,8 @@ if command -v gsettings >/dev/null 2>&1; then
         gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" &&
         gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark' &&
         gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice' &&
-        gsettings set org.gnome.desktop.interface cursor-size 24
+        gsettings set org.gnome.desktop.interface cursor-size 24 &&
+        gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:close'   # X w oknach aplikacji jak w Windowsie (minimalizuj: klik w tytuł na pasku)
     } || warn "Nie udało się ustawić motywu przez gsettings (uruchom instalator z poziomu Hyprlanda)"
 fi
 
