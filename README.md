@@ -99,6 +99,8 @@ boot/splash.bmp     logo VoxOS przy starcie
 | 3 palce w bok (touchpad) | zmiana pulpitu |
 | `Print` / `Shift + Print` | zrzut zaznaczenia / całego ekranu: plik w Obrazy/Zrzuty + schowek + powiadomienie (klik w nie = edycja w satty) |
 | `Ctrl + Print` | zrzut zaznaczenia od razu do edycji (strzałki, tekst, zamazywanie) |
+| `Super + Shift + S` | zrzut zaznaczenia (jak w Windows 11) |
+| EliteBook 1030: `Druck` / `Alt + Druck` / `Ctrl + Druck` | klawisz Druck wysyła Insert, więc tu: zaznaczenie / cały ekran / do edycji (`hypr-host.lua`) |
 | `Super + Shift + T` | tekst z ekranu do schowka (OCR, polski + angielski) |
 | `Super + N` | schowaj powiadomienia |
 | `Super + Shift + N` | przywróć ostatnie powiadomienie |

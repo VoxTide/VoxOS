@@ -36,3 +36,9 @@ hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-osd br
 
 -- Sprzętowe dekodowanie wideo na Intel HD 515 (Firefox, mpv): sterownik iHD z intel-media-driver
 hl.env("LIBVA_DRIVER_NAME", "iHD")
+
+-- Klawisz "Druck" na niemieckiej klawiaturze tego EliteBooka wysyła Insert (Print jest dopiero pod Fn),
+-- więc zrzuty ekranu są też pod nim. Shift + Insert (wklejanie w terminalu) zostaje bez zmian.
+hl.bind("Insert",        hl.dsp.exec_cmd("bash ~/.local/bin/voxos-screenshot area"))   -- zaznaczenie
+hl.bind("ALT + Insert",  hl.dsp.exec_cmd("bash ~/.local/bin/voxos-screenshot full"))   -- cały ekran
+hl.bind("CTRL + Insert", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-screenshot edit"))   -- od razu do edycji

@@ -126,6 +126,7 @@ hl.bind(mainMod .. " + period",    hl.dsp.exec_cmd("rofi -modi emoji -show emoji
 hl.bind("Print",         hl.dsp.exec_cmd("bash ~/.local/bin/voxos-screenshot area"))
 hl.bind("SHIFT + Print", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-screenshot full"))
 hl.bind("CTRL + Print",  hl.dsp.exec_cmd("bash ~/.local/bin/voxos-screenshot edit"))   -- zrzut od razu do edycji (satty)
+hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-screenshot area"))  -- jak w Windows 11
 
 -- Fokus strzałkami
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))

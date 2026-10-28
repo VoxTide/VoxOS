@@ -31,7 +31,8 @@ Spacja (w Thunarze)     szybki podgląd pliku
 Super + S               panel szybkich ustawień (też klik w ikony po prawej na pasku)
 Super + M               zminimalizuj okno (też klik w tytuł okna na pasku)
 Super + Shift + M       przywróć zminimalizowane okno
-Print                   zrzut zaznaczenia
+Print / Druck / Super + Shift + S   zrzut zaznaczenia
+Alt + Druck             zrzut całego ekranu (EliteBook: Druck = Insert)
 Shift + Print           zrzut całego ekranu
 Ctrl + Print            zrzut zaznaczenia od razu do edycji
 Super + Shift + T       tekst z ekranu do schowka (OCR)
