@@ -28,32 +28,71 @@ else
         git clone --depth 1 -b stable https://github.com/flutter/flutter.git "$FLUTTER_DIR" || { warn "Nie udało się pobrać Fluttera"; }
     fi
 fi
+# Flutter pobrany z tagu wersji nie ma gałęzi i pokazuje kanał "user-branch":
+# podpinamy go pod kanał stable (wersja zostaje ta sama)
+if [[ -d $FLUTTER_DIR/.git ]] && [[ $(git -C "$FLUTTER_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null) == HEAD ]]; then
+    info "Ustawiam kanał Fluttera: stable"
+    git -C "$FLUTTER_DIR" fetch -q --depth 1 origin stable:refs/remotes/origin/stable 2>/dev/null || true
+    git -C "$FLUTTER_DIR" checkout -q -B stable
+    git -C "$FLUTTER_DIR" branch -q --set-upstream-to=origin/stable stable 2>/dev/null || true
+    rm -f "$FLUTTER_DIR/bin/cache/flutter.version.json"
+fi
 export PATH="$FLUTTER_DIR/bin:$ANDROID_SDK/platform-tools:$ANDROID_SDK/cmdline-tools/latest/bin:$PATH"
 
 # --- Android SDK -----------------------------------------------------------------
-sdkmanager=""
-if [[ -x $ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager ]]; then
-    sdkmanager="$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager"
-elif [[ -x /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager ]]; then
-    sdkmanager=/opt/android-sdk/cmdline-tools/latest/bin/sdkmanager
+find_sdkmanager() {
+    local c
+    for c in "$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager; do
+        [[ -x $c ]] && { echo "$c"; return 0; }
+    done
+    command -v sdkmanager 2>/dev/null
+}
+sdkmanager="$(find_sdkmanager || true)"
+
+# Brak sdkmanagera (np. pakiet z AUR się nie zbudował): narzędzia prosto od Google
+if [[ -z $sdkmanager ]]; then
+    info "Pobieram narzędzia Android SDK (command-line tools) od Google"
+    zipname=$(curl -fsSL https://dl.google.com/android/repository/repository2-3.xml 2>/dev/null \
+        | grep -o 'commandlinetools-linux-[0-9]*_latest\.zip' | sort -V | tail -1)
+    if [[ -n $zipname ]]; then
+        tmp="$(mktemp -d)"
+        if curl -fL --progress-bar -o "$tmp/clt.zip" "https://dl.google.com/android/repository/$zipname" \
+           && unzip -q "$tmp/clt.zip" -d "$tmp"; then
+            mkdir -p "$ANDROID_SDK/cmdline-tools"
+            rm -rf "$ANDROID_SDK/cmdline-tools/latest"
+            mv "$tmp/cmdline-tools" "$ANDROID_SDK/cmdline-tools/latest"
+            sdkmanager="$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager"
+        fi
+        rm -rf "$tmp"
+    fi
+    [[ -n $sdkmanager ]] || warn "Nie udało się pobrać narzędzi Android SDK"
 fi
 
 if [[ -n $sdkmanager && -d $JDK_DIR ]]; then
     export JAVA_HOME="$JDK_DIR"
-    info "Instaluję Android SDK w $ANDROID_SDK (platform-tools, cmdline-tools)"
     mkdir -p "$ANDROID_SDK"
-    "$sdkmanager" --sdk_root="$ANDROID_SDK" --install "platform-tools" "cmdline-tools;latest" \
-        || warn "sdkmanager zgłosił problem przy instalacji"
     info "Akceptuję licencje Android SDK"
     yes | "$sdkmanager" --sdk_root="$ANDROID_SDK" --licenses >/dev/null 2>&1 || true
-    ok "Android SDK gotowy (wersje platform Gradle doinstaluje sam przy pierwszym buildzie)"
+    # Najnowsza stabilna platforma i build-tools (Flutter wymaga choć jednej platformy w SDK)
+    list="$("$sdkmanager" --sdk_root="$ANDROID_SDK" --list 2>/dev/null || true)"
+    platform=$(grep -o 'platforms;android-[0-9]\+ ' <<<"$list" | tr -d ' ' | sort -t- -k2 -n | tail -1)
+    buildtools=$(grep -o 'build-tools;[0-9.]\+ ' <<<"$list" | tr -d ' ' | sort -V | tail -1)
+    pkgs=("platform-tools" "cmdline-tools;latest")
+    [[ -n $platform ]] && pkgs+=("$platform")
+    [[ -n $buildtools ]] && pkgs+=("$buildtools")
+    info "Instaluję Android SDK w $ANDROID_SDK: ${pkgs[*]}"
+    "$sdkmanager" --sdk_root="$ANDROID_SDK" --install "${pkgs[@]}" \
+        || warn "sdkmanager zgłosił problem przy instalacji"
+    yes | "$sdkmanager" --sdk_root="$ANDROID_SDK" --licenses >/dev/null 2>&1 || true
+    ok "Android SDK gotowy (pozostałe wersje Gradle doinstaluje sam przy pierwszym buildzie)"
 else
     warn "Brak sdkmanager albo JDK 17 - najpierw pełna instalacja: bash ~/voxos/install.sh"
 fi
 
 if command -v flutter >/dev/null; then
-    info "Konfiguruję Fluttera"
+    info "Konfiguruję Fluttera (Android; bez wersji web i Linux, których tu nie używasz)"
     flutter config --no-analytics >/dev/null 2>&1 || true
+    flutter config --no-enable-web --no-enable-linux-desktop >/dev/null 2>&1 || true
     flutter config --android-sdk "$ANDROID_SDK" >/dev/null 2>&1 || true
     [[ -d $JDK_DIR ]] && flutter config --jdk-dir "$JDK_DIR" >/dev/null 2>&1
     yes | flutter doctor --android-licenses >/dev/null 2>&1 || true
