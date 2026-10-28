@@ -5,7 +5,7 @@ rofi -dmenu -i -no-custom -p "Skróty" -theme-str 'window { width: 640px; } list
 Super + Enter           terminal
 Super + Shift + Enter   wysuwany terminal (pokaż / schowaj)
 Super + D               aplikacje (Ctrl + Tab: kalkulator, pliki)
-Super + K               kalkulator (Enter kopiuje wynik)
+Super + K               kalkulator (okno; w launcherze też zakładka KALKULATOR)
 Super + Shift + F       szukaj plików
 Alt + Tab               przełącznik okien (puść Alt, aby przełączyć)
 Super + E               pliki (Thunar)

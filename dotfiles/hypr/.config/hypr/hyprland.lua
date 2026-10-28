@@ -102,7 +102,7 @@ hl.bind(mainMod .. " + M",      hl.dsp.exec_cmd("bash ~/.local/bin/voxos-minimiz
 hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-minimize restore")) -- przywróć zminimalizowane
 hl.bind("ALT + Tab",              hl.dsp.exec_cmd("bash ~/.local/bin/voxos-alttab"))        -- przełącznik okien
 hl.bind(mainMod .. " + SHIFT + Return", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-dropdown"))  -- wysuwany terminal
-hl.bind(mainMod .. " + K",         hl.dsp.exec_cmd("bash ~/.local/bin/voxos-launcher calc"))  -- kalkulator
+hl.bind(mainMod .. " + K",         hl.dsp.exec_cmd("bash ~/.local/bin/voxos-calc"))           -- kalkulator (okno)
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-launcher files")) -- szukanie plików
 hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("bash ~/.local/bin/voxos-ocr"))           -- tekst z ekranu do schowka
 -- Przyciąganie okien jak w Windowsie (voxos-snap)
@@ -208,6 +208,13 @@ hl.window_rule({
     match  = { class = "^(org.gnome.NautilusPreviewer)$" },
     float  = true,
     center = true,
+})
+hl.window_rule({
+    name   = "calculator",
+    match  = { class = "^(org.gnome.Calculator)$" },
+    float  = true,
+    center = true,
+    size   = { "380", "600" },
 })
 hl.window_rule({
     name   = "taskmgr",

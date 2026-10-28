@@ -71,7 +71,7 @@ boot/splash.bmp     logo VoxOS przy starcie
 | `Super + Enter` | terminal |
 | `Super + Shift + Enter` | wysuwany terminal (pokaż / schowaj) |
 | `Super + D` | launcher: APLIKACJE / KALKULATOR / PLIKI (`Ctrl + Tab` przełącza) |
-| `Super + K` | kalkulator (np. `15% z 240`, `5 km w mi`; Enter kopiuje wynik) |
+| `Super + K` | kalkulator w oknie (GNOME Kalkulator w kolorach motywu; tryby: podstawowy, naukowy, przeliczanie jednostek). W launcherze zakładka KALKULATOR: wpisz np. `15% z 240`, Enter kopiuje wynik |
 | `Super + Shift + F` | szukanie plików w katalogu domowym |
 | `Alt + Tab` | przełącznik okien (od ostatnio używanych; puść Alt, aby przełączyć) |
 | `Super + E` | menedżer plików |

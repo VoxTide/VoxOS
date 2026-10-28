@@ -39,7 +39,8 @@ tesseract-data-eng
 satty                         # edycja zrzutów: strzałki, tekst, zamazywanie
 
 # Launcher: kalkulator i szukanie plików
-rofi-calc                     # zakładka KALKULATOR (Super + K)
+gnome-calculator              # kalkulator w oknie jak w Windowsie (Super + K), kolory z motywu VoxOS
+rofi-calc                     # zakładka KALKULATOR w launcherze (Super + D, Ctrl + Tab)
 libqalculate
 fd                            # zakładka PLIKI (Super + Shift + F)
 

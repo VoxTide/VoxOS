@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# VoxOS - kalkulator (Super + K): okno jak w Windowsie (GNOME Kalkulator, kolory z motywu VoxOS).
+# Drugie wciśnięcie przy otwartym kalkulatorze przełącza na niego fokus.
+# Bez gnome-calculator: zakładka KALKULATOR w launcherze.
+if hyprctl clients -j 2>/dev/null | jq -e 'any(.[]; .class == "org.gnome.Calculator")' >/dev/null; then
+    hyprctl dispatch 'hl.dsp.focus({ window = "class:^(org.gnome.Calculator)$" })' >/dev/null 2>&1
+elif command -v gnome-calculator >/dev/null; then
+    setsid -f gnome-calculator >/dev/null 2>&1
+else
+    exec bash ~/.local/bin/voxos-launcher calc
+fi
