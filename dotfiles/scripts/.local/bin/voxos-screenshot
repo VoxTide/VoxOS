@@ -15,6 +15,9 @@ edit() {
 }
 
 mode="${1:-area}"
+if [[ $mode != full ]]; then
+    if pkill -x slurp 2>/dev/null; then exit 0; fi   # zaznaczanie już trwa: ponowne wciśnięcie je anuluje
+fi
 case "$mode" in
     area|edit) geom="$(slurp)" || exit 0          # Esc przy zaznaczaniu = anuluj
                grim -g "$geom" "$file" ;;

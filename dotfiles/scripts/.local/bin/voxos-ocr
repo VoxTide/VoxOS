@@ -3,6 +3,8 @@
 # Rozpoznawanie: tesseract, język polski + angielski.
 set -u
 command -v tesseract >/dev/null || { notify-send -a VoxOS "Brak tesseract" "Pełna instalacja VoxOS: bash ~/voxos/install.sh"; exit 1; }
+# Zaznaczanie już trwa: ponowne wciśnięcie skrótu je anuluje (zamiast zrzutu ekranu z zaznaczaniem)
+if pkill -x slurp 2>/dev/null; then exit 0; fi
 geom="$(slurp)" || exit 0
 langs="pol+eng"
 tesseract --list-langs 2>/dev/null | grep -qx pol || langs="eng"
