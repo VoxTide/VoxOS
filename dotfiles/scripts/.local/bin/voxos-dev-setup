@@ -74,9 +74,15 @@ if [[ -n $sdkmanager && -d $JDK_DIR ]]; then
     info "Akceptuję licencje Android SDK"
     yes | "$sdkmanager" --sdk_root="$ANDROID_SDK" --licenses >/dev/null 2>&1 || true
     # Najnowsza stabilna platforma i build-tools (Flutter wymaga choć jednej platformy w SDK)
-    list="$("$sdkmanager" --sdk_root="$ANDROID_SDK" --list 2>/dev/null || true)"
-    platform=$(grep -o 'platforms;android-[0-9]\+ ' <<<"$list" | tr -d ' ' | sort -t- -k2 -n | tail -1)
-    buildtools=$(grep -o 'build-tools;[0-9.]\+ ' <<<"$list" | tr -d ' ' | sort -V | tail -1)
+    # Pierwsza kolumna listy to identyfikator pakietu, np. "platforms;android-36" albo "build-tools;36.0.0"
+    ids="$("$sdkmanager" --sdk_root="$ANDROID_SDK" --list 2>&1 | awk '{print $1}' || true)"
+    platform=$(grep -E '^platforms;android-[0-9]+(\.[0-9]+)?$' <<<"$ids" | sort -V | tail -1 || true)
+    buildtools=$(grep -E '^build-tools;[0-9]+\.[0-9]+\.[0-9]+$' <<<"$ids" | sort -V | tail -1 || true)
+    if [[ -z $platform ]]; then
+        warn "Nie udało się odczytać listy pakietów SDK - instaluję Androida 16 (API 36)"
+        platform="platforms;android-36"
+        buildtools="build-tools;36.0.0"
+    fi
     pkgs=("platform-tools" "cmdline-tools;latest")
     [[ -n $platform ]] && pkgs+=("$platform")
     [[ -n $buildtools ]] && pkgs+=("$buildtools")
